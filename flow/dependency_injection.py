@@ -1,4 +1,5 @@
 from functools import wraps
+from inspect import isfunction
 
 class Registry(object):
     
@@ -11,8 +12,9 @@ class Registry(object):
     @classmethod
     def get_instance(cls,for_class,*args,**kwargs):
         satisfies = cls._r[for_class.__name__]
-        if callable(satisfies):
-            return satisfies(*args,**kwargs)    
+        if isfunction(satisfies) or isinstance(satisfies,type):
+            return satisfies(*args,**kwargs)
+            
         return satisfies
     
     @classmethod

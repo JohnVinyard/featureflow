@@ -11,10 +11,11 @@ def read(fname):
 
 setup(
       name = 'flow',
-      version = '0.01',
+      version = '0.02',
       url = 'http://www.johnvinyard.com',
       author = 'John Vinyard',
       author_email = 'john.vinyard@gmail.com',
       long_description = read('README.md'),
+      packages = ['flow'],
       install_requires = ['nose','unittest2']
 )

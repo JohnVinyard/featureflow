@@ -1,7 +1,7 @@
 import simplejson
 import numpy as np
 
-from encoder import IdentityEncoder,JSONEncoder,ShittyNumpyEncoder
+from encoder import IdentityEncoder,JSONEncoder,ShittyNumpyEncoder,TextEncoder
 from dependency_injection import dependency
 from data import DataWriter
 
@@ -97,6 +97,18 @@ class NumpyFeature(Feature):
             store = store,
             encoder = ShittyNumpyEncoder,
             decoder = lambda x : np.fromstring(x.read(),dtype = np.float32),
+            key = key,
+            **extractor_args)
+
+class TextFeature(Feature):
+    
+    def __init__(self,extractor,needs = None,store = False,key = None,**extractor_args):
+        super(TextFeature,self).__init__(\
+            extractor,
+            needs = needs,
+            store = store,
+            encoder = TextEncoder,
+            decoder = lambda x : x.read(),
             key = key,
             **extractor_args)
 

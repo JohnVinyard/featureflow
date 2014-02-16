@@ -20,6 +20,13 @@ class IdentityEncoder(Extractor):
     def _process(self,final_push):
         return self._cache
 
+class TextEncoder(IdentityEncoder):
+    
+    content_type = 'text/plain'
+    
+    def __init__(self,needs = None):
+        super(TextEncoder,self).__init__(needs = needs)
+
 class JSONEncoder(Extractor):
     
     content_type = 'application/json'

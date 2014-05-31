@@ -68,8 +68,7 @@ class BaseModel(object):
     
     @classmethod
     @dependency(IdProvider)
-    def id_provider(cls):
-        pass 
+    def id_provider(cls): pass 
      
     @classmethod
     def process(cls,inp):

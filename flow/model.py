@@ -25,7 +25,7 @@ class MetaModel(type):
         return self.features.iteritems()
     
     def stored_features(self):
-        return filter(lambda f : f.store,self.iterfeatures())
+        return filter(lambda f : f.store,self.features.itervalues())
     
 
 class BaseModel(object):

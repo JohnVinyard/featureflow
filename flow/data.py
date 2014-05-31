@@ -1,4 +1,5 @@
 from extractor import Extractor
+from StringIO import StringIO
 
 class Database(object):
     '''
@@ -13,6 +14,26 @@ class Database(object):
     # object
     def read_stream(self,key):
         raise NotImplemented()
+
+class InMemoryDatabase(object):
+
+    def __init__(self):
+        super(InMemoryDatabase,self).__init__()
+        self._dict = dict()
+
+    def write_stream(self,key,content_type):
+        sio = StringIO()
+        self._dict[key] = sio
+        def hijacked_close():
+            sio.seek(0)
+            self._dict[key] = sio.read()
+            sio._old_close()
+        sio._old_close = sio.close
+        sio.close = hijacked_close
+        return sio
+
+    def read_stream(self,key):
+        return StringIO(self._dict[key])
     
 class DataWriter(Extractor):
     '''

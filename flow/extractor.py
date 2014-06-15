@@ -16,17 +16,22 @@ class Extractor(object):
         if not self._needs:
             return
         
-        try:
-            self._needs.add_listener(self)
-            return
-        except AttributeError:
-            pass
+        if isinstance(self._needs,Extractor):
+            self._needs = [self._needs]
         
         for e in self._needs:
             e.add_listener(self)
         
     def add_listener(self,listener):
         self._listeners.append(listener)
+
+    def find_listener(self,predicate):
+        for l in self._listeners:
+            if predicate(l):
+                return l
+            else:
+                return l.find_listener(predicate)
+        return None
     
     def process(self,data,final_push = True,pusher = None):
         self._update_cache(data,final_push,pusher)
@@ -71,4 +76,4 @@ class Extractor(object):
         '''
         Do we have enough data in _cache to do some work?
         '''
-        return bool(self._cache)
+        return bool(self._cache) or final_push

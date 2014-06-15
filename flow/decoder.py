@@ -2,6 +2,8 @@
 decoders should be a callables that take a file-like object and return...anything
 '''
 import simplejson
+from util import chunked
+from extractor import Extractor
 
 class Decoder(object):
 	'''
@@ -13,6 +15,10 @@ class Decoder(object):
 	def __call__(self,flo):
 		return flo
 
+	def __iter__(self,flo):
+		for chunk in chunked(flo):
+			yield chunk
+
 class GreedyDecoder(Decoder):
 	'''
 	A decoder that reads the entire file contents into memory
@@ -23,6 +29,9 @@ class GreedyDecoder(Decoder):
 	def __call__(self,flo):
 		return flo.read()
 
+	def __iter__(self,flo):
+		return self(flo)
+
 class JSONDecoder(GreedyDecoder):
 	'''
 	A decoder that interprets the data as JSON
@@ -31,5 +40,16 @@ class JSONDecoder(GreedyDecoder):
 		super(JSONDecoder,self).__init__()
 
 	def __call__(self,flo):
-		return simplejson.loads(super(JSONDecoder,self)(flo))
+		return simplejson.loads(super(JSONDecoder,self).__call__(flo))
 
+	def __iter__(self,flo):
+		yield self(flo)
+
+class DecoderExtractor(Extractor):
+
+	def __init__(self,needs = None,decodifier = None):
+		super(DecoderExtractor,self).__init__(needs = needs)
+		self.decoder = decodifier
+
+	def _process(self,final_push):
+		return self.decoder.__iter__(self._cache)

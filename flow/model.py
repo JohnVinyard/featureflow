@@ -1,7 +1,8 @@
+from extractor import Graph
 from dependency_injection import dependency
 from feature import Feature
 from data import DataReader,IdProvider,StringIODataWriter
-from decoder import DecoderExtractor
+from decoder import DecoderNode
 from collections import deque
 
 class MetaModel(type):
@@ -59,10 +60,9 @@ class BaseModel(object):
         if not f._can_compute():
             raise AttributeError('%s cannot be computed' % f.key)
 
-        partial,data_writer = self._build_partial(self._id,f)
-        # TODO: Zip/interleave the roots
-        for p in partial:
-            p.process(self.reader(self._id,p.key))
+        graph,data_writer = self._build_partial(self._id,f)
+        kwargs = dict((k,self.reader(self._id,k)) for k,v in graph.roots().iteritems())
+        graph.process(**kwargs)
 
         stream = data_writer._stream
         stream.seek(0)
@@ -72,42 +72,31 @@ class BaseModel(object):
     
     @classmethod
     def _build_extractor(cls,_id):
-        extractors = dict([(k,None) for k in cls.features.iterkeys()])
-        root = None
+        g = Graph()
         for feature in cls.features.itervalues():
-            e = feature._build_extractor(_id,extractors)
-            if feature.is_root:
-                if root:
-                    raise ValueError('multiple root extractors')
-                root = e
-        
-        if not root:
-            raise ValueError('no root extractor')
-        return root
+            feature._build_extractor(_id,g)
+        return g
 
     @classmethod
     def _build_partial(cls,_id,feature):
         features = feature._partial(_id)
-        extractors = dict([(k,None) for k in features.iterkeys()])
-        roots = []
+        g = Graph()
         for feat in features.itervalues():
-            e = feat._build_extractor(_id,extractors)
-            if feat.is_root: 
-                roots.append(Partial(feat,e))
+            e = feat._build_extractor(_id,g)
             if feat.key == feature.key:
                 data_writer = e.find_listener(\
                     lambda x : isinstance(x,StringIODataWriter))
-        return roots,data_writer
+        return g,data_writer
     
     @classmethod
     @dependency(IdProvider)
     def id_provider(cls): pass 
      
     @classmethod
-    def process(cls,inp):
+    def process(cls,**kwargs):
         _id = cls.id_provider().new_id()
-        extractor = cls._build_extractor(_id)
-        extractor.process(inp)
+        graph = cls._build_extractor(_id)
+        graph.process(**kwargs)
         return _id
 
 class Partial(object):

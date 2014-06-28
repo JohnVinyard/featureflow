@@ -2,7 +2,7 @@ import unittest2
 from StringIO import StringIO
 from collections import defaultdict
 
-from extractor import Extractor
+from extractor import Node,NotEnoughData
 from model import BaseModel
 from feature import Feature,JSONFeature
 from dependency_injection import Registry
@@ -12,137 +12,133 @@ from util import chunked
 data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
 	'humpty' : 'humpty dumpty sat on a wall humpty dumpty had a great fall',
-	'numbers' : range(10)
+	'numbers' : range(10),
+	'cased' : 'This is a test.'
 }
 
-class TextStream(Extractor):
+class TextStream(Node):
 	
 	def __init__(self, needs = None):
 		super(TextStream,self).__init__(needs = needs)
-
-	def _finalize(self):
-		pass
 	
-	def _process(self,final_push):
-		flo = StringIO(data_source[self._cache])
-		return chunked(flo,chunksize = 3)
+	def _process(self,data):
+		flo = StringIO(data_source[data])
+		for chunk in chunked(flo,chunksize = 3):
+			yield chunk
 
-class NumberStream(Extractor):
+class ToUpper(Node):
+
+	def __init__(self, needs = None):
+		super(ToUpper,self).__init__(needs = needs)
+
+	def _process(self,data):
+		yield data.upper()
+
+class ToLower(Node):
+
+	def __init__(self, needs = None):
+		super(ToLower,self).__init__(needs = needs)
+
+	def _process(self,data):
+		yield data.lower()
+
+class Concatenate(Node):
+
+	def __init__(self, needs = None):
+		super(Concatenate,self).__init__(needs = needs)
+		self._cache = defaultdict(str)
+
+	def _enqueue(self,data,pusher):
+		self._cache[id(pusher)] += data
+
+	def _dequeue(self):
+		if not self._finalized:
+			raise NotEnoughData()
+
+		return self._cache
+
+	def _process(self,data):
+		s = ''
+		for v in data.itervalues():
+			s += v
+		yield s
+class NumberStream(Node):
 
 	def __init__(self, needs = None):
 		super(NumberStream,self).__init__(needs = needs)
 
-	def _finalize(self):
-		pass
-
-	def _process(self,final_push):
-		l = data_source[self._cache]
+	def _process(self,data):
+		l = data_source[data]
 		for i in xrange(0,len(l),3):
 			yield l[i : i + 3]
 
-class Add(Extractor):
+class Add(Node):
 
 	def __init__(self, rhs = 1, needs = None):
 		super(Add,self).__init__(needs = needs)
 		self._rhs = rhs
 
-	def _finalize(self):
-		pass
+	def _process(self,data):
+		yield [c + self._rhs for c in data]
 
-	def _process(self,final_push):
-
-		# Q: What is it that I'm doing here?
-		# A: asking if it's safe to call _process() 
-		#if not self._cache:
-		#	return
-
-		return [c + self._rhs for c in self._cache]
-
-class SumUp(Extractor):
+class SumUp(Node):
 
 	def __init__(self, needs = None):
 		super(SumUp,self).__init__(needs = needs)
 		self._cache = dict()
 
-	# this is totally necessary, becauase self._cache
-	# can be *any* data type
-	def _update_cache(self,data,final_push,pusher):
+	def _enqueue(self,data,pusher):
 		self._cache[id(pusher)] = data
 
-	def _can_process(self,final_push):
-		return len(self._cache) == len(self._needs)
-
-	def _finalize(self):
-		pass
-
-	def _process(self,final_push):
-
-		# Q: What is it that I'm doing here?
-		# A: asking if it's safe to call _process() 
-		#if not any(self._cache.values()):
-		#	return
-
-		results = [str(sum(x)) for x in zip(*self._cache.itervalues())]
+	def _dequeue(self):
+		if len(self._cache) != len(self._needs):
+			raise NotEnoughData()
+		v = self._cache
 		self._cache = dict()
-		return ''.join(results)
+		return v
 
-class Tokenizer(Extractor):
+	def _process(self,data):
+		results = [str(sum(x)) for x in zip(*data.itervalues())]
+		yield ''.join(results)
+
+class Tokenizer(Node):
 	
 	def __init__(self, needs = None):
 		super(Tokenizer,self).__init__(needs = needs)
+		self._cache = ''
 
-	def _finalize(self):
-		pass
+	def _enqueue(self,data,pusher):
+		self._cache += data
 
-	def _update_cache(self,data,final_push,pusher):
-		'''
-		Update the data we're keeping stored until we can do some processing
-		'''
-		if not self._cache:
-			self._cache = data
-		elif data:
-			self._cache += data
-	
-	def _can_process(self,final_push):
-		#if final_push:
-		#	return True
-		return self._cache.rfind(' ') != -1
+	def _finalize(self,pusher):
+		self._cache += ' '
 
-	def _finalize(self):
-		#return filter(lambda x : x, self._cache.split(' '))
-		pass
-	
-	def _process(self,final_push):
-		#if not self._cache:
-		#	return []
-
-		if final_push:
-			return filter(lambda x : x, self._cache.split(' '))
-
+	def _dequeue(self):
 		last_index = self._cache.rfind(' ')
+		if last_index == -1:
+			raise NotEnoughData()
 		current = self._cache[:last_index + 1]
 		self._cache = self._cache[last_index + 1:]
-		return filter(lambda x : x, current.split(' '))
+		return current
+	
+	def _process(self,data):
+		yield filter(lambda x : x, data.split(' '))
 
-class WordCount(Extractor):
+class WordCount(Node):
 	
 	def __init__(self, needs = None):
 		super(WordCount,self).__init__(needs = needs)
-		self._count = defaultdict(int)
+		self._cache = defaultdict(int)
 
-	def _finalize(self):
-		pass
-	
-	def _can_process(self,final_push):
-		return final_push
-	
-	def _update_cache(self,data,final_push,pusher):
+	def _enqueue(self,data,pusher):
 		for word in data:
-			self._count[word.lower()] += 1
+			self._cache[word.lower()] += 1
 
-	def _process(self,final_push):
-		return self._count
+	def _dequeue(self):
+		if not self._finalized:
+			raise NotEnoughData()
 
+		return super(WordCount,self)._dequeue()
 
 class Document(BaseModel):
 	
@@ -163,6 +159,13 @@ class Numbers(BaseModel):
 	add2 = Feature(Add, needs = stream, store = False, rhs = 1)
 	sumup = Feature(SumUp, needs = [add1,add2], store = True)
 
+class Doc3(BaseModel):
+
+	stream = Feature(TextStream, store = True)
+	uppercase = Feature(ToUpper, needs = stream, store = True)
+	lowercase = Feature(ToLower, needs = stream, store = False)
+	cat = Feature(Concatenate, needs = [uppercase,lowercase], store = False)
+
 class IntegrationTest(unittest2.TestCase):
 
 	def setUp(self):
@@ -173,31 +176,33 @@ class IntegrationTest(unittest2.TestCase):
 		Registry.register(DataReader,DataReaderFactory())
 
 	def test_can_process_and_retrieve_stored_feature(self):
-		_id = Document.process('mary')
+		_id = Document.process(stream = 'mary')
 		doc = Document(_id)
 		self.assertEqual(data_source['mary'],doc.stream.read())
 
 	def test_can_correctly_decode_feature(self):
-		_id = Document2.process('mary')
+		_id = Document2.process(stream = 'mary')
 		doc = Document2(_id)
 		self.assertTrue(isinstance(doc.count,dict))
 
 	def test_can_retrieve_unstored_feature_when_dependencies_are_satisfied(self):
-		_id = Document.process('humpty')
+		_id = Document.process(stream = 'humpty')
 		doc = Document(_id)
 		d = doc.count
 		self.assertEqual(2,d['humpty'])
 		self.assertEqual(1,d['sat'])
 
 	def test_cannot_retrieve_unstored_feature_when_dependencies_are_not_satisfied(self):
-		_id = Document2.process('humpty')
+		_id = Document2.process(stream = 'humpty')
 		doc = Document2(_id)
 		self.assertRaises(AttributeError,lambda : doc.stream)
 
 	def test_feature_with_multiple_inputs(self):
-		_id = Numbers.process('numbers')
+		_id = Numbers.process(stream = 'numbers')
 		doc = Numbers(_id)
 		self.assertEqual('2468101214161820',doc.sumup.read())
 
 	def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
-		self.fail()
+		_id = Doc3.process(stream = 'cased')
+		doc = Doc3(_id)
+		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())

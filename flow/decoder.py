@@ -3,7 +3,7 @@ decoders should be a callables that take a file-like object and return...anythin
 '''
 import simplejson
 from util import chunked
-from extractor import Extractor
+from extractor import Node
 
 class Decoder(object):
 	'''
@@ -45,14 +45,12 @@ class JSONDecoder(GreedyDecoder):
 	def __iter__(self,flo):
 		yield self(flo)
 
-class DecoderExtractor(Extractor):
+class DecoderNode(Node):
 
 	def __init__(self,needs = None,decodifier = None):
-		super(DecoderExtractor,self).__init__(needs = needs)
+		super(DecoderNode,self).__init__(needs = needs)
 		self.decoder = decodifier
 
-	def _finalize(self):
-		pass
-
-	def _process(self,final_push):
-		return self.decoder.__iter__(self._cache)
+	def _process(self,data):
+		for x in self.decoder.__iter__(data):
+			yield x

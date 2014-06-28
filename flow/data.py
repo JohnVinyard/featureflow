@@ -1,7 +1,7 @@
 from StringIO import StringIO
 from uuid import uuid4
 
-from extractor import Extractor
+from extractor import Node
 from dependency_injection import dependency
 
 class IdProvider(object):
@@ -63,7 +63,6 @@ class InMemoryDatabase(Database):
         sio = StringIO()
         self._dict[key] = sio
         def hijacked_close():
-            print key,'HLCOSE'
             sio.seek(0)
             self._dict[key] = sio.read()
             sio._old_close()
@@ -74,7 +73,7 @@ class InMemoryDatabase(Database):
     def read_stream(self,key):
         return StringIO(self._dict[key])
 
-class DataWriter(Extractor):
+class DataWriter(Node):
     
     def __init__(\
             self, 
@@ -99,21 +98,18 @@ class DataWriter(Extractor):
     @property
     @dependency(Database)
     def db(self): pass
-    
-    def _can_process(self,final_push):
-        return self._cache is not None
-        
-    def _process(self,final_push):
-        if not self._stream:
-            self._stream = self.db.write_stream(self.key, self.content_type)
-        self._stream.write(self._cache)
-        #if final_push:
-        #    self._stream.close()
 
-    def _finalize(self):
+    def __enter__(self):
+        self._stream = self.db.write_stream(self.key,self.content_type)
+        return self
+
+    def __exit__(self,t,value,traceback):
         self._stream.close()
+        
+    def _process(self,data):
+        yield self._stream.write(data)
 
-class StringIODataWriter(Extractor):
+class StringIODataWriter(Node):
 
     def __init__(self,needs = None,_id = None,feature_name = None):
         super(StringIODataWriter,self).__init__(needs = needs)
@@ -122,15 +118,8 @@ class StringIODataWriter(Extractor):
         self.content_type = needs.content_type
         self._stream = StringIO()
 
-    def _can_process(self,final_push):
-        return self._cache is not None
-
-    def _process(self,final_push):
-        self._stream.write(self._cache)
-
-    def _finalize(self):
-        #self._stream.close()
-        pass
+    def _process(self,data):
+        yield self._stream.write(data)
 
 class DataReader(object):
     '''

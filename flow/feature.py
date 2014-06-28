@@ -2,7 +2,7 @@ import simplejson
 import numpy as np
 
 from encoder import IdentityEncoder,JSONEncoder,ShittyNumpyEncoder,TextEncoder
-from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderExtractor
+from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode
 from dependency_injection import dependency
 from data import DataWriter,DataReader,StringIODataWriter
 
@@ -100,8 +100,8 @@ class Feature(object):
             raise Exception('There is no need to build a partial graph for a stored feature')
 
         nf = self.copy(\
-            extractor = DecoderExtractor if self.store else self.extractor,
-            store = not self.store,
+            extractor = DecoderNode if self.store else self.extractor,
+            store = features is None,
             needs = None,
             data_writer = StringIODataWriter if features is None else None,
             extractor_args = dict(decodifier = self.decoder) if self.store else self.extractor_args)
@@ -111,35 +111,41 @@ class Feature(object):
 
         features[self.key] = nf
 
-        for n in self.needs:
-            n._partial(_id,features = features)
-            nf.add_dependency(features[n.key])
+        if not self.store:
+            for n in self.needs:
+                n._partial(_id,features = features)
+                nf.add_dependency(features[n.key])
 
         return features
 
-    def _depends_on(self,_id,extractors):
+    def _depends_on(self,_id,graph):
         needs = []
         for f in self.needs:
-            if extractors[f.key]:
-                needs.append(extractors[f.key])
+            if f.key in graph:
+                needs.append(graph[f.key])
                 continue
-            e = f._build_extractor(_id,extractors)
+            e = f._build_extractor(_id,graph)
             needs.append(e)
         return needs
 
-    def _build_extractor(self,_id,extractors = None):
-        if extractors[self.key]:
-            return extractors[self.key]
+    def _build_extractor(self,_id,graph):
+        try:
+            return graph[self.key]
+        except KeyError:
+            pass
         
-        needs = self._depends_on(_id,extractors)
+        needs = self._depends_on(_id,graph)
         e = self.extractor(needs = needs,**self.extractor_args)
-        extractors[self.key] = e
+        graph[self.key] = e
         if not self.store: return e
+        key = self.key
         encoder = self.encoder(needs = e)
+        graph['{key}_encoder'.format(**locals())] = encoder
         # TODO: Here the DataWriter is monolithic.  What if the data writer 
         # varies by feature, e.g., some values are written to a database, while
         # others are published to a work queue?
-        self._data_writer(needs = encoder, _id = _id, feature_name = self.key)
+        dw = self._data_writer(needs = encoder, _id = _id, feature_name = self.key)
+        graph['{key}_writer'.format(**locals())] = dw
         return e
 
 class JSONFeature(Feature):

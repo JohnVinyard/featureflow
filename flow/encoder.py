@@ -7,6 +7,9 @@ class IdentityEncoder(Extractor):
     
     def __init__(self, needs = None):
         super(IdentityEncoder,self).__init__(needs = needs)
+
+    def _finalize(self):
+        pass
     
     def _update_cache(self,data,final_push,pusher):
         if data:
@@ -33,9 +36,13 @@ class JSONEncoder(Extractor):
     
     def __init__(self, needs = None):
         super(JSONEncoder,self).__init__(needs = needs)
+
+    def _finalize(self):
+        return simplejson.dumps(self._cache)
         
     def _process(self,final_push):
-        return simplejson.dumps(self._cache)
+        #return simplejson.dumps(self._cache)
+        pass
 
 class ShittyNumpyEncoder(Extractor):
     
@@ -43,6 +50,9 @@ class ShittyNumpyEncoder(Extractor):
     
     def __init__(self, needs = None):
         super(ShittyNumpyEncoder,self).__init__(needs = needs)
+
+    def _finalize(self):
+        pass
     
     def _can_process(self,final_push):
         return self._cache.size

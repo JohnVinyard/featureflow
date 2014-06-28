@@ -63,6 +63,7 @@ class InMemoryDatabase(Database):
         sio = StringIO()
         self._dict[key] = sio
         def hijacked_close():
+            print key,'HLCOSE'
             sio.seek(0)
             self._dict[key] = sio.read()
             sio._old_close()
@@ -106,8 +107,11 @@ class DataWriter(Extractor):
         if not self._stream:
             self._stream = self.db.write_stream(self.key, self.content_type)
         self._stream.write(self._cache)
-        if final_push:
-            self._stream.close()
+        #if final_push:
+        #    self._stream.close()
+
+    def _finalize(self):
+        self._stream.close()
 
 class StringIODataWriter(Extractor):
 
@@ -123,6 +127,10 @@ class StringIODataWriter(Extractor):
 
     def _process(self,final_push):
         self._stream.write(self._cache)
+
+    def _finalize(self):
+        #self._stream.close()
+        pass
 
 class DataReader(object):
     '''

@@ -38,7 +38,17 @@ class Feature(object):
         if data_writer:
             self._data_writer = data_writer
 
-    def copy(self,extractor = None,needs = None,store = None,data_writer = None,extractor_args = None):
+    def copy(\
+        self,
+        extractor = None,
+        needs = None,
+        store = None,
+        data_writer = None,
+        extractor_args = None):
+        '''
+        Use self as a template to build a new feature, replacing
+        values in kwargs
+        '''
         return Feature(\
             extractor or self.extractor,
             needs = needs,
@@ -69,6 +79,10 @@ class Feature(object):
         pass
 
     def _can_compute(self):
+        '''
+        Return true if this feature stored, or is unstored, but can be computed
+        from stored dependencies
+        '''
         if self.store:
             return True
 
@@ -78,7 +92,10 @@ class Feature(object):
         return all([n._can_compute() for n in self.needs])
 
     def _partial(self,_id,features = None):
-
+        '''
+        TODO: _partial is a shit name for this, kind of.  I'm building a graph
+        such that I can only do work necessary to compute self, and no more
+        '''
         if self.store and features is None:
             raise Exception('There is no need to build a partial graph for a stored feature')
 
@@ -110,12 +127,10 @@ class Feature(object):
             needs.append(e)
         return needs
 
-    def _build_extractor(\
-            self,
-            _id,
-            extractors = None):
+    def _build_extractor(self,_id,extractors = None):
         if extractors[self.key]:
             return extractors[self.key]
+        
         needs = self._depends_on(_id,extractors)
         e = self.extractor(needs = needs,**self.extractor_args)
         extractors[self.key] = e

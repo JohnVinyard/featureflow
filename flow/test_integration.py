@@ -19,6 +19,9 @@ class TextStream(Extractor):
 	
 	def __init__(self, needs = None):
 		super(TextStream,self).__init__(needs = needs)
+
+	def _finalize(self):
+		pass
 	
 	def _process(self,final_push):
 		flo = StringIO(data_source[self._cache])
@@ -28,6 +31,9 @@ class NumberStream(Extractor):
 
 	def __init__(self, needs = None):
 		super(NumberStream,self).__init__(needs = needs)
+
+	def _finalize(self):
+		pass
 
 	def _process(self,final_push):
 		l = data_source[self._cache]
@@ -40,9 +46,16 @@ class Add(Extractor):
 		super(Add,self).__init__(needs = needs)
 		self._rhs = rhs
 
+	def _finalize(self):
+		pass
+
 	def _process(self,final_push):
-		if not self._cache:
-			return
+
+		# Q: What is it that I'm doing here?
+		# A: asking if it's safe to call _process() 
+		#if not self._cache:
+		#	return
+
 		return [c + self._rhs for c in self._cache]
 
 class SumUp(Extractor):
@@ -51,15 +64,24 @@ class SumUp(Extractor):
 		super(SumUp,self).__init__(needs = needs)
 		self._cache = dict()
 
+	# this is totally necessary, becauase self._cache
+	# can be *any* data type
 	def _update_cache(self,data,final_push,pusher):
 		self._cache[id(pusher)] = data
 
 	def _can_process(self,final_push):
 		return len(self._cache) == len(self._needs)
 
+	def _finalize(self):
+		pass
+
 	def _process(self,final_push):
-		if not any(self._cache.values()):
-			return
+
+		# Q: What is it that I'm doing here?
+		# A: asking if it's safe to call _process() 
+		#if not any(self._cache.values()):
+		#	return
+
 		results = [str(sum(x)) for x in zip(*self._cache.itervalues())]
 		self._cache = dict()
 		return ''.join(results)
@@ -68,6 +90,9 @@ class Tokenizer(Extractor):
 	
 	def __init__(self, needs = None):
 		super(Tokenizer,self).__init__(needs = needs)
+
+	def _finalize(self):
+		pass
 
 	def _update_cache(self,data,final_push,pusher):
 		'''
@@ -79,13 +104,17 @@ class Tokenizer(Extractor):
 			self._cache += data
 	
 	def _can_process(self,final_push):
-		if final_push:
-			return True
+		#if final_push:
+		#	return True
 		return self._cache.rfind(' ') != -1
+
+	def _finalize(self):
+		#return filter(lambda x : x, self._cache.split(' '))
+		pass
 	
 	def _process(self,final_push):
-		if not self._cache:
-			return []
+		#if not self._cache:
+		#	return []
 
 		if final_push:
 			return filter(lambda x : x, self._cache.split(' '))
@@ -100,6 +129,9 @@ class WordCount(Extractor):
 	def __init__(self, needs = None):
 		super(WordCount,self).__init__(needs = needs)
 		self._count = defaultdict(int)
+
+	def _finalize(self):
+		pass
 	
 	def _can_process(self,final_push):
 		return final_push

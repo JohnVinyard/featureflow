@@ -51,5 +51,8 @@ class DecoderExtractor(Extractor):
 		super(DecoderExtractor,self).__init__(needs = needs)
 		self.decoder = decodifier
 
+	def _finalize(self):
+		pass
+
 	def _process(self,final_push):
 		return self.decoder.__iter__(self._cache)

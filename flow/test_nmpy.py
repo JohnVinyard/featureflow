@@ -43,7 +43,7 @@ class NumpyTest(unittest2.TestCase):
 		self._arrange((33,),np.float32)
 
 	def test_can_store_and_retreive_multidimensional_uint8_array(self):
-		self._arrange((10,10),np.uint8)
+		self._arrange((12,13),np.uint8)
 
 	def test_can_store_and_retrieve_multidimensional_float32_array(self):
-		self._arrange((10,10),np.float32)
+		self._arrange((5,10,11),np.float32)

@@ -7,7 +7,7 @@ import struct
 class NumpyMetaData(object):
 
 	def __init__(self,dtype = None,shape = None):
-		self.dtype = dtype or np.uint8
+		self.dtype = np.uint8 if dtype is None else dtype
 		self.shape = shape or ()
 
 	def __repr__(self):
@@ -25,19 +25,20 @@ class NumpyMetaData(object):
 	def unpack(cls,flo):
 		l = struct.unpack('B',flo.read(1))[0]
 		bytes_read = 1 + l
-		return cls(eval(flo.read(l))),bytes_read
+		return cls(*eval(flo.read(l))),bytes_read
 
 class NumpyEncoder(Node):
     
     content_type = 'application/octet-stream'
     
-    def __init__(self, needs = None, dtype = None, shape = None):
+    def __init__(self, needs = None):
         super(NumpyEncoder,self).__init__(needs = needs)
-        self.metadata = NumpyMetaData(dtype,shape)
-        self._init = False
+        self.metadata = None
     
     def _process(self,data):
-    	if not self._init:
+    	if not self.metadata:
+    		self.metadata = NumpyMetaData(\
+    			dtype = data.dtype, shape = data.shape[1:])
     		yield self.metadata.pack()
 
         yield data.tostring()
@@ -49,15 +50,14 @@ class GreedyNumpyDecoder(Node):
 
 	def __call__(self,flo):
 		metadata,bytes_read = NumpyMetaData.unpack(flo)
-		# TODO: if flo supports buffer interface, then
-		# use that, otherwise, do a copy
 		leftovers = flo.read()
 		leftover_bytes = len(leftovers)
 		itemsize = np.dtype(metadata.dtype).itemsize
 		prod = np.product(metadata.shape)
-		first_dim = (leftover_bytes / (prod * itemsize)) / itemsize
+		first_dim = (leftover_bytes / (prod * itemsize))
 		dim = (first_dim,) + metadata.shape
-		return np.fromstring(leftovers,dtype = metadata.dtype).reshape(dim)
+		f = np.frombuffer if len(leftovers) else np.fromstring
+		return f(leftovers,dtype = metadata.dtype).reshape(dim)
 
 	def __iter__(self,flo):
 		yield self(flo)

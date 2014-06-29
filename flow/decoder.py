@@ -30,7 +30,7 @@ class GreedyDecoder(Decoder):
 		return flo.read()
 
 	def __iter__(self,flo):
-		return self(flo)
+		yield self(flo)
 
 class JSONDecoder(GreedyDecoder):
 	'''

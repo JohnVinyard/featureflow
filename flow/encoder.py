@@ -34,12 +34,3 @@ class JSONEncoder(Node):
     def _process(self,data):
         yield simplejson.dumps(data)
 
-class ShittyNumpyEncoder(Node):
-    
-    content_type = 'application/octet-stream'
-    
-    def __init__(self, needs = None):
-        super(ShittyNumpyEncoder,self).__init__(needs = needs)
-    
-    def _process(self,data):
-        yield data.tostring()

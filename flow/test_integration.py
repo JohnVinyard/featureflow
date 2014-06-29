@@ -62,6 +62,7 @@ class Concatenate(Node):
 		for v in data.itervalues():
 			s += v
 		yield s
+
 class NumberStream(Node):
 
 	def __init__(self, needs = None):

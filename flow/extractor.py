@@ -12,14 +12,12 @@ class Node(object):
         self._listeners = []
         self._finalized = False
 
-        # This is ugly.  I need a better way to express this
         if needs is None:
             self._needs = []
         elif isinstance(needs,Node):
             self._needs = [needs]
         else:
             self._needs = needs
-        # end ugliness
 
         for n in self._needs:
             n.add_listener(self)

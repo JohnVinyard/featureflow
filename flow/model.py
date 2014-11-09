@@ -2,8 +2,6 @@ from extractor import Graph
 from dependency_injection import dependency
 from feature import Feature
 from data import DataReader,IdProvider,StringIODataWriter
-from decoder import DecoderNode
-from collections import deque
 
 class MetaModel(type):
 

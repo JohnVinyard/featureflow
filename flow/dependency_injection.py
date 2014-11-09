@@ -1,5 +1,4 @@
 from functools import wraps
-from inspect import isfunction
 
 class Registry(object):
     

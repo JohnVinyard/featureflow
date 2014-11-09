@@ -1,6 +1,3 @@
-import simplejson
-import numpy as np
-
 from encoder import IdentityEncoder,JSONEncoder,TextEncoder
 from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode
 from dependency_injection import dependency

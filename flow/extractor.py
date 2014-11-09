@@ -1,5 +1,3 @@
-from types import GeneratorType
-from collections import defaultdict
 from itertools import izip
 import contextlib
 import inspect

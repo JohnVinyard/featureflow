@@ -1,8 +1,7 @@
 import unittest2
-from StringIO import StringIO
 from collections import defaultdict
 
-from extractor import Node,NotEnoughData
+from extractor import NotEnoughData
 from model import BaseModel
 from feature import Feature,JSONFeature
 from dependency_injection import Registry

@@ -28,7 +28,6 @@ class TextStream(Node):
 			flo = StringIO(data)
 		
 		for chunk in chunked(flo,chunksize = self._chunksize):
-			print chunk
 			yield chunk
 
 class ToUpper(Node):

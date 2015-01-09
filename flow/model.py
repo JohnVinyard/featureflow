@@ -59,7 +59,8 @@ class BaseModel(object):
             raise AttributeError('%s cannot be computed' % f.key)
 
         graph,data_writer = self._build_partial(self._id,f)
-        kwargs = dict((k,self.reader(self._id,k)) for k,v in graph.roots().iteritems())
+        kwargs = dict(\
+          (k,self.reader(self._id,k)) for k,_ in graph.roots().iteritems())
         graph.process(**kwargs)
 
         stream = data_writer._stream

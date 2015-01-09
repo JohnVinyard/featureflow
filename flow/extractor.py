@@ -42,6 +42,7 @@ class Node(object):
         return None
 
     def _enqueue(self,data,pusher):
+        # TODO: decode data, and write it to the local queue
         self._cache = data
 
     def _dequeue(self):
@@ -60,6 +61,8 @@ class Node(object):
 
     def _push(self,data):
         for l in self._listeners:
+            # TODO: the listener may be remote, so process() cannot be called
+            # directly
             [x for x in l.process(data,self)]
 
     def __finalize(self,pusher = None):

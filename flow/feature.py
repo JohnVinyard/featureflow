@@ -101,7 +101,8 @@ class Feature(object):
             store = features is None,
             needs = None,
             data_writer = StringIODataWriter if features is None else None,
-            extractor_args = dict(decodifier = self.decoder) if self.store else self.extractor_args)
+            extractor_args = dict(decodifier = self.decoder) \
+                if self.store else self.extractor_args)
 
         if features is None:
             features = dict()

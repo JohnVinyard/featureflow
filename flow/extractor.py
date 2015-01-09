@@ -1,4 +1,4 @@
-from itertools import izip
+from itertools import izip_longest
 import contextlib
 import inspect
 
@@ -106,7 +106,7 @@ class Graph(dict):
         # get a generator for each root node.
         generators = [roots[k].process(v) for k,v in kwargs.iteritems()]
         with contextlib.nested(*self.values()) as _:
-            [x for x in izip(*generators)]
+            [x for x in izip_longest(*generators)]
 
     @staticmethod
     def from_locals():

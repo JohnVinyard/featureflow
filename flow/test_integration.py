@@ -28,6 +28,7 @@ class TextStream(Node):
 			flo = StringIO(data)
 		
 		for chunk in chunked(flo,chunksize = self._chunksize):
+			print chunk
 			yield chunk
 
 class ToUpper(Node):
@@ -212,13 +213,13 @@ class IntegrationTest(unittest2.TestCase):
 		_id = MultipleRoots.process(stream1 = 'mary', stream2 = 'humpty')
 		doc = MultipleRoots(_id)
 		data = doc.cat.read()
-		print data
 		# KLUDGE: Note that order is unknown, since we're using a dict 
 		self.assertTrue('mar' in data[:6])
 		self.assertTrue('hum' in data[:6])
 		self.assertEqual(\
 			len(data_source['mary']) + len(data_source['humpty']), 
 			len(data))
+		self.assertTrue(data.endswith('fall'))
 	
 	def test_smaller_chunks_downstream(self):
 		_id = Doc4.process(stream = 'mary')

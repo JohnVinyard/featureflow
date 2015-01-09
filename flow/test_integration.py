@@ -17,12 +17,17 @@ data_source = {
 
 class TextStream(Node):
 	
-	def __init__(self, needs = None):
+	def __init__(self, chunksize = 3, needs = None):
 		super(TextStream,self).__init__(needs = needs)
+		self._chunksize = chunksize
 	
 	def _process(self,data):
-		flo = StringIO(data_source[data])
-		for chunk in chunked(flo,chunksize = 3):
+		try:
+			flo = StringIO(data_source[data])
+		except KeyError:
+			flo = StringIO(data)
+		
+		for chunk in chunked(flo,chunksize = self._chunksize):
 			yield chunk
 
 class ToUpper(Node):
@@ -61,6 +66,22 @@ class Concatenate(Node):
 		for v in data.itervalues():
 			s += v
 		yield s
+
+class EagerConcatenate(Node):
+	
+	def __init__(self, needs = None):
+		super(EagerConcatenate,self).__init__(needs = needs)
+		self._cache = dict()
+	
+	def _enqueue(self,data,pusher):
+		self._cache[id(pusher)] = data
+	
+	def _dequeue(self):
+		v, self._cache = self._cache, dict()
+		return v
+	
+	def _process(self,data):
+		yield ''.join(data.itervalues())
 
 class NumberStream(Node):
 
@@ -166,6 +187,18 @@ class Doc3(BaseModel):
 	lowercase = Feature(ToLower, needs = stream, store = False)
 	cat = Feature(Concatenate, needs = [uppercase,lowercase], store = False)
 
+class Doc4(BaseModel):
+	
+	stream = Feature(TextStream, chunksize = 10, store = False)
+	smaller = Feature(TextStream, needs = stream, chunksize = 3, store = True)
+
+class MultipleRoots(BaseModel):
+	
+	stream1 = Feature(TextStream, chunksize = 3, store = False)
+	stream2 = Feature(TextStream, chunksize = 3, store = False)
+	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
+	
+
 class IntegrationTest(unittest2.TestCase):
 
 	def setUp(self):
@@ -174,6 +207,28 @@ class IntegrationTest(unittest2.TestCase):
 		Registry.register(Database,InMemoryDatabase())
 		Registry.register(DataWriter,DataWriter)
 		Registry.register(DataReader,DataReaderFactory())
+	
+	def test_document_with_multiple_roots(self):
+		_id = MultipleRoots.process(stream1 = 'mary', stream2 = 'humpty')
+		doc = MultipleRoots(_id)
+		data = doc.cat.read()
+		print data
+		# KLUDGE: Note that order is unknown, since we're using a dict 
+		self.assertTrue('mar' in data[:6])
+		self.assertTrue('hum' in data[:6])
+		self.assertEqual(\
+			len(data_source['mary']) + len(data_source['humpty']), 
+			len(data))
+	
+	def test_smaller_chunks_downstream(self):
+		_id = Doc4.process(stream = 'mary')
+		doc = Doc4(_id)
+		self.assertEqual(data_source['mary'],doc.smaller.read())
+	
+	def test_exception_is_thrown_if_all_kwargs_are_not_provided(self):
+		self.assertRaises(\
+			KeyError, 
+			lambda : MultipleRoots.process(stream1 = 'mary'))
 
 	def test_can_process_and_retrieve_stored_feature(self):
 		_id = Document.process(stream = 'mary')

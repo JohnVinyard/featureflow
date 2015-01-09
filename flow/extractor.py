@@ -93,7 +93,17 @@ class Graph(dict):
         return dict((k,v) for k,v in self.iteritems() if v.is_root)
 
     def process(self,**kwargs):
+        # get all root nodes (those that produce data, rather than consuming 
+        # it)
         roots = self.roots()
+        
+        if set(kwargs.keys()) ^ set(roots.keys()):
+            raise KeyError(\
+               'the keys {kw} were provided to the process() method, but the' \
+               + 'keys for the root extractors were {r}'\
+               .format(kw = kwargs.keys(),r = roots.keys()))
+                    
+        # get a generator for each root node.
         generators = [roots[k].process(v) for k,v in kwargs.iteritems()]
         with contextlib.nested(*self.values()) as _:
             [x for x in izip(*generators)]

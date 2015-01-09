@@ -49,8 +49,7 @@ class Node(object):
         if self._cache is None:
             raise NotEnoughData()
 
-        v = self._cache
-        self._cache = None
+        v, self._cache = self._cache, None
         return v
 
     def _process(self,data):

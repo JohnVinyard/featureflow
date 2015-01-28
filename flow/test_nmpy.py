@@ -1,10 +1,15 @@
 import unittest2
-import numpy as np
 
-from nmpy import NumpyFeature,StreamingNumpyDecoder
+try:
+	import numpy as np
+	from nmpy import NumpyFeature,StreamingNumpyDecoder
+except ImportError:
+	np = None
+
 from dependency_injection import Registry
 from data import *
 from model import BaseModel
+
 
 class PassThrough(Node):
 
@@ -18,6 +23,7 @@ class PassThrough(Node):
 class NumpyTest(unittest2.TestCase):
 
 	def setUp(self):
+		if np is None: self.skipTest('numpy is not available')
 		Registry.register(IdProvider,UuidProvider())
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
 		Registry.register(Database,InMemoryDatabase())
@@ -50,6 +56,7 @@ class NumpyTest(unittest2.TestCase):
 class StreamingNumpyTest(unittest2.TestCase):
 	
 	def setUp(self):
+		if np is None: self.skipTest('numpy is not available')
 		Registry.register(IdProvider,UuidProvider())
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
 		Registry.register(Database,InMemoryDatabase())

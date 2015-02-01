@@ -52,6 +52,9 @@ class Database(object):
     # object
     def read_stream(self,key):
         raise NotImplemented()
+    
+    def iter_keys(self,key_filter = None):
+        raise NotImplemented()
 
 class InMemoryDatabase(Database):
 
@@ -72,6 +75,9 @@ class InMemoryDatabase(Database):
 
     def read_stream(self,key):
         return StringIO(self._dict[key])
+    
+    def iter_keys(self, key_filter = None):
+        return filter(key_filter, self._dict.iterkeys())
 
 class DataWriter(Node):
     

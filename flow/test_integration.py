@@ -158,14 +158,58 @@ class WordCount(Node):
 	def _dequeue(self):
 		if not self._finalized:
 			raise NotEnoughData()
-
 		return super(WordCount,self)._dequeue()
+
+class WordCountAggregator(Node):
+	
+	def __init__(self, needs = None):
+		super(WordCountAggregator,self).__init__(needs = needs)
+		self._cache = defaultdict(int)
+	
+	def _enqueue(self,data,pusher):
+		for k,v in data.iteritems():
+			self._cache[k.lower()] += v
+	
+	def _dequeue(self):
+		if not self._finalized:
+			raise NotEnoughData()
+		return super(WordCountAggregator,self)._dequeue()
+
+class FeatureAggregator(Node):
+	
+	def __init__(self, cls = None, feature = None, needs = None):
+		super(FeatureAggregator,self).__init__(needs = needs)
+		self._cls = cls
+		self._feature = feature
+	
+	def _process(self,data):
+		db = data
+		# KLUDGE: This assumes a particular key building algorithm
+		keys = set(k.split(':')[0] for k in db.iter_keys())
+		for key in keys:
+			try:
+				doc = self._cls(key)
+				yield getattr(doc,self._feature.key)
+			except:
+				pass
 
 class Document(BaseModel):
 	
 	stream = Feature(TextStream, store = True)
 	words  = Feature(Tokenizer, needs = stream, store = False)
 	count  = JSONFeature(WordCount, needs = words, store = False)
+
+class DocumentWordCount(BaseModel):
+	counts = Feature(\
+		FeatureAggregator, 
+		cls = Document, 
+		feature = Document.count,
+		store = False)
+	
+	total_count = JSONFeature(\
+		WordCountAggregator, 
+		store = True, 
+		needs = counts)
 
 class Document2(BaseModel):
 	
@@ -207,6 +251,14 @@ class IntegrationTest(unittest2.TestCase):
 		Registry.register(Database,InMemoryDatabase())
 		Registry.register(DataWriter,DataWriter)
 		Registry.register(DataReader,DataReaderFactory())
+	
+	def test_can_process_multiple_documents_and_then_aggregate_word_count(self):
+		_id1 = Document.process(stream = 'mary')
+		_id2 = Document.process(stream = 'humpty')
+		_id3 = DocumentWordCount.process(\
+			counts = Registry.get_instance(Database))
+		doc = DocumentWordCount(_id3)
+		self.assertEqual(3,doc.total_count['a'])
 	
 	def test_document_with_multiple_roots(self):
 		_id = MultipleRoots.process(stream1 = 'mary', stream2 = 'humpty')

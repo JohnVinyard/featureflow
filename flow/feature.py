@@ -148,7 +148,14 @@ class Feature(object):
 
 class JSONFeature(Feature):
     
-    def __init__(self,extractor,needs = None,store = False,key = None,**extractor_args):
+    def __init__(\
+            self,
+            extractor,
+            needs = None,
+            store = False,
+            key = None,
+            **extractor_args):
+        
         super(JSONFeature,self).__init__(\
             extractor,
             needs = needs,
@@ -160,7 +167,14 @@ class JSONFeature(Feature):
 
 class TextFeature(Feature):
     
-    def __init__(self,extractor,needs = None,store = False,key = None,**extractor_args):
+    def __init__(\
+             self,
+             extractor,
+             needs = None,
+             store = False,
+             key = None,
+             **extractor_args):
+        
         super(TextFeature,self).__init__(\
             extractor,
             needs = needs,

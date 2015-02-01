@@ -239,7 +239,6 @@ class MultipleRoots(BaseModel):
 	stream1 = Feature(TextStream, chunksize = 3, store = False)
 	stream2 = Feature(TextStream, chunksize = 3, store = False)
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
-	
 
 class IntegrationTest(unittest2.TestCase):
 

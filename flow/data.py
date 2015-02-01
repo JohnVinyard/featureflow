@@ -62,12 +62,6 @@ class Database(object):
 
     def iter_ids(self):
         raise NotImplemented()
-    
-    def iter_feature(self,feature):
-        raise NotImplemented()
-    
-    def exists(self,_id):
-        raise NotImplemented()
 
 class InMemoryDatabase(Database):
 
@@ -100,15 +94,6 @@ class InMemoryDatabase(Database):
             if _id in seen: continue
             yield _id
             seen.add(_id)
-
-    def iter_feature(self,feature):
-        for key in self._dict.iterkeys():
-            _,feature_name = self.key_builder().decompose(key)
-            if feature_name == feature.key:
-                yield key
-    
-    def exists(self,_id):
-        return _id in self._dict
 
 class DataWriter(Node):
     

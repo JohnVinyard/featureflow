@@ -26,18 +26,25 @@ class KeyBuilder(object):
     '''
     def build(self,_id,feature_name):
         raise NotImplemented()
+    
+    def decompose(self,composed):
+        raise NotImplemented()
 
 class StringDelimitedKeyBuilder(KeyBuilder):
 
     def __init__(self,seperator = ':'):
         super(StringDelimitedKeyBuilder,self).__init__()
-        self.seperator = seperator
+        self._seperator = seperator
 
     def build(self,_id,feature_name):
         return '{_id}{sep}{feature}'.format(\
             _id = _id,
-            sep = self.seperator,
+            sep = self._seperator,
             feature = feature_name)
+        
+    def decompose(self,composed):
+        return composed.split(self._seperator)
+    
 
 class Database(object):
     '''
@@ -52,8 +59,14 @@ class Database(object):
     # object
     def read_stream(self,key):
         raise NotImplemented()
+
+    def iter_ids(self):
+        raise NotImplemented()
     
-    def iter_keys(self,key_filter = None):
+    def iter_feature(self,feature):
+        raise NotImplemented()
+    
+    def exists(self,_id):
         raise NotImplemented()
 
 class InMemoryDatabase(Database):
@@ -75,9 +88,27 @@ class InMemoryDatabase(Database):
 
     def read_stream(self,key):
         return StringIO(self._dict[key])
+
+    @property
+    @dependency(KeyBuilder)
+    def key_builder(self): pass
+
+    def iter_ids(self):
+        seen = set()
+        for key in self._dict.iterkeys():
+            _id,_ = self.key_builder.decompose(key)
+            if _id in seen: continue
+            yield _id
+            seen.add(_id)
+
+    def iter_feature(self,feature):
+        for key in self._dict.iterkeys():
+            _,feature_name = self.key_builder().decompose(key)
+            if feature_name == feature.key:
+                yield key
     
-    def iter_keys(self, key_filter = None):
-        return filter(key_filter, self._dict.iterkeys())
+    def exists(self,_id):
+        return _id in self._dict
 
 class DataWriter(Node):
     

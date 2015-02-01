@@ -184,9 +184,7 @@ class FeatureAggregator(Node):
 	
 	def _process(self,data):
 		db = data
-		# KLUDGE: This assumes a particular key building algorithm
-		keys = set(k.split(':')[0] for k in db.iter_keys())
-		for key in keys:
+		for key in db.iter_ids():
 			try:
 				doc = self._cls(key)
 				yield getattr(doc,self._feature.key)

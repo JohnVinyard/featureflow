@@ -72,8 +72,7 @@ class Feature(object):
         pass
 
     @dependency(DataReader)
-    def reader(self,_id,key):
-        pass
+    def reader(self,_id,key): pass
 
     def _can_compute(self):
         '''
@@ -139,10 +138,12 @@ class Feature(object):
         key = self.key
         encoder = self.encoder(needs = e)
         graph['{key}_encoder'.format(**locals())] = encoder
+        
         # TODO: Here the DataWriter is monolithic.  What if the data writer 
         # varies by feature, e.g., some values are written to a database, while
         # others are published to a work queue?
-        dw = self._data_writer(needs = encoder, _id = _id, feature_name = self.key)
+        dw = self._data_writer(\
+            needs = encoder, _id = _id, feature_name = self.key)
         graph['{key}_writer'.format(**locals())] = dw
         return e
 

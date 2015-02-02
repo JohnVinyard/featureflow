@@ -25,6 +25,9 @@ def dependency(cls):
     def x(fn):
         @wraps(fn)
         def y(inst,*args,**kwargs):
-            return Registry.get_instance(cls,*args,**kwargs)
+            try:
+                return inst._registry[cls]
+            except:
+                return Registry.get_instance(cls,*args,**kwargs)
         return y
     return x

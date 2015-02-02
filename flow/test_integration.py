@@ -191,6 +191,7 @@ class FeatureAggregator(Node):
 			except:
 				pass
 
+# TODO: Move these classes into the tests, where possible
 class Document(BaseModel):
 	
 	stream = Feature(TextStream, store = True)
@@ -239,6 +240,7 @@ class MultipleRoots(BaseModel):
 	stream1 = Feature(TextStream, chunksize = 3, store = False)
 	stream2 = Feature(TextStream, chunksize = 3, store = False)
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
+	
 
 class IntegrationTest(unittest2.TestCase):
 
@@ -310,3 +312,56 @@ class IntegrationTest(unittest2.TestCase):
 		_id = Doc3.process(stream = 'cased')
 		doc = Doc3(_id)
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+	
+	def test_can_write_different_documents_to_different_data_stores(self):
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = False)
+			
+			_registry = {
+				Database : db1
+			}
+		
+		class B(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = False)
+			
+			_registry = {
+				Database : db2
+			}
+		
+		_id1 = A.process(stream = 'mary')
+		_id2 = B.process(stream = 'humpty')
+		self.assertEqual(1,len(list(db1.iter_ids())))
+		self.assertEqual(1,len(list(db2.iter_ids())))
+		
+	
+	def test_can_write_different_features_to_different_data_stores(self):
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+			
+			uppercase._registry = {
+				Database : db1
+			}
+			
+			lowercase._registry = {
+				Database : db2
+			}
+				
+		_id = A.process(stream = 'mary')
+		_ids1 = set(db1.iter_ids())
+		_ids2 = set(db2.iter_ids())
+		
+		self.assertTrue(_id in _ids1)
+		self.assertTrue()
+		

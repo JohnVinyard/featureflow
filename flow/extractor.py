@@ -115,4 +115,5 @@ class Graph(dict):
         context
         '''
         l = inspect.stack()[1][0].f_locals
-        return Graph(**dict((k,v) for k,v in l.iteritems() if isinstance(v,Node)))
+        return Graph(\
+             **dict((k,v) for k,v in l.iteritems() if isinstance(v,Node)))

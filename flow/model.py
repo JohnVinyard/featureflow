@@ -38,8 +38,7 @@ class BaseModel(object):
         self._id = _id
     
     @dependency(DataReader)
-    def reader(self,_id,key):
-        pass
+    def reader(self,_id,key): pass
     
     def __getattribute__(self,key):
         f = object.__getattribute__(self,key)

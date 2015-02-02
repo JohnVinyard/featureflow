@@ -44,7 +44,6 @@ class StringDelimitedKeyBuilder(KeyBuilder):
         
     def decompose(self,composed):
         return composed.split(self._seperator)
-    
 
 class Database(object):
     '''
@@ -154,8 +153,7 @@ class DataReaderFactory(object):
     
     @property
     @dependency(Database)
-    def database(self):
-        pass
+    def database(self): pass
 
     @property
     @dependency(KeyBuilder)

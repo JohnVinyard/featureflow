@@ -13,7 +13,6 @@ class Registry(object):
         satisfies = cls._r[for_class.__name__]
         if callable(satisfies):
             return satisfies(*args,**kwargs)
-            
         return satisfies
     
     @classmethod
@@ -22,7 +21,8 @@ class Registry(object):
         
     
 def dependency(cls):
-    def x(fn):
+    
+    def x(fn):     
         @wraps(fn)
         def y(inst,*args,**kwargs):
             try:
@@ -30,4 +30,5 @@ def dependency(cls):
             except:
                 return Registry.get_instance(cls,*args,**kwargs)
         return y
+    
     return x

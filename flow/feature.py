@@ -144,6 +144,13 @@ class Feature(object):
         # others are published to a work queue?
         dw = self._data_writer(\
             needs = encoder, _id = _id, feature_name = self.key)
+        
+        # KLUDGE: I shouldn't know about the DI code here
+        try:
+            dw._registry = self._registry
+        except AttributeError:
+            pass
+        
         graph['{key}_writer'.format(**locals())] = dw
         return e
 

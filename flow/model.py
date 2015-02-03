@@ -21,6 +21,12 @@ class MetaModel(type):
             if isinstance(v,Feature):
                 v.key = k
                 self.features[k] = v
+                
+                # KLUDGE: I shouldn't know about the DI code here
+                try:
+                    v._registry = self._registry
+                except AttributeError:
+                    pass
     
     def iterfeatures(self):
         return self.features.iteritems()

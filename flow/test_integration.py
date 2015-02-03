@@ -313,6 +313,9 @@ class IntegrationTest(unittest2.TestCase):
 		doc = Doc3(_id)
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	
+	def test_can_read_different_documents_to_different_data_stores(self):
+		self.fail()
+	
 	def test_can_write_different_documents_to_different_data_stores(self):
 		db1 = InMemoryDatabase()
 		db2 = InMemoryDatabase()
@@ -339,7 +342,9 @@ class IntegrationTest(unittest2.TestCase):
 		_id2 = B.process(stream = 'humpty')
 		self.assertEqual(1,len(list(db1.iter_ids())))
 		self.assertEqual(1,len(list(db2.iter_ids())))
-		
+	
+	def test_can_read_different_features_from_different_data_stores(self):
+		self.fail()
 	
 	def test_can_write_different_features_to_different_data_stores(self):
 		db1 = InMemoryDatabase()
@@ -363,5 +368,5 @@ class IntegrationTest(unittest2.TestCase):
 		_ids2 = set(db2.iter_ids())
 		
 		self.assertTrue(_id in _ids1)
-		self.assertTrue()
+		self.assertTrue(_id in _ids2)
 		

@@ -27,7 +27,6 @@ class BaseNumpyTest(object):
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
 		Registry.register(Database,InMemoryDatabase())
 		Registry.register(DataWriter,DataWriter)
-		Registry.register(DataReader,DataReaderFactory())
 	
 	def test_can_store_and_retrieve_empty_array(self):
 		self._arrange((0,),np.uint8)

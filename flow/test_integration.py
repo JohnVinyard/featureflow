@@ -1,5 +1,6 @@
 import unittest2
 from collections import defaultdict
+import time
 
 from extractor import NotEnoughData
 from model import BaseModel
@@ -66,6 +67,20 @@ class Concatenate(Node):
 		for v in data.itervalues():
 			s += v
 		yield s
+
+class Timestamp(Node):
+	
+	def __init__(self, needs = None):
+		super(Timestamp,self).__init__(needs = needs)
+		self._cache = ''
+	
+	def _dequeue(self):
+		if not self._finalized: 
+			raise NotEnoughData()
+		return self._cache
+	
+	def _process(self,data):
+		yield str(time.time())
 
 class EagerConcatenate(Node):
 	
@@ -249,7 +264,22 @@ class IntegrationTest(unittest2.TestCase):
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
 		Registry.register(Database,InMemoryDatabase())
 		Registry.register(DataWriter,DataWriter)
-		Registry.register(DataReader,DataReaderFactory())
+
+	def test_stored_features_are_not_rewritten_when_computing_dependent_feature(self):
+		class Timestamps(BaseModel):
+			stream = Feature(TextStream, store = True)
+			t1 = Feature(Timestamp, needs = stream, store = True)
+			t2 = Feature(Timestamp, needs = stream, store = False)
+			cat = Feature(\
+				Concatenate, needs = [t1,t2], store = False)
+		
+		_id = Timestamps.process(stream = 'cased')
+		doc1 = Timestamps(_id)
+		orig = doc1.t1.read()
+		doc2 = Timestamps(_id)
+		computed = doc2.cat.read()
+		new = doc2.t1.read()
+		self.assertEqual(orig,new)
 	
 	def test_can_process_multiple_documents_and_then_aggregate_word_count(self):
 		_id1 = Document.process(stream = 'mary')
@@ -313,8 +343,69 @@ class IntegrationTest(unittest2.TestCase):
 		doc = Doc3(_id)
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	
-	def test_can_read_different_documents_to_different_data_stores(self):
-		self.fail()
+	def test_can_read_computed_property_when_dependencies_are_in_different_data_stores(self):
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		class Split(BaseModel):
+			stream = Feature(TextStream, store = False)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+			cat = Feature(\
+				Concatenate, needs = [uppercase,lowercase], store = False)
+			
+			uppercase._registry = {
+				Database.__name__ : db1
+			}
+			
+			lowercase._registry = {
+				Database.__name__ : db2
+			}
+		
+		_id = Split.process(stream = 'cased')
+		doc = Split(_id)
+		
+		_ids1 = set(db1.iter_ids())
+		_ids2 = set(db2.iter_ids())
+		self.assertTrue(_id in _ids1)
+		self.assertTrue(_id in _ids2)
+		
+		self.assertEqual(data_source['cased'].upper(),doc.uppercase.read())
+		self.assertEqual(data_source['cased'].lower(),doc.lowercase.read())
+		
+		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+	
+	
+	def test_can_read_different_documents_from_different_data_stores(self):
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = False)
+			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
+			_registry = {
+				Database.__name__ : db1
+			}
+		
+		class B(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = False)
+			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
+			_registry = {
+				Database.__name__ : db2
+			}
+		
+		_id1 = A.process(stream = 'mary')
+		_id2 = B.process(stream = 'humpty')
+		doc_a = A(_id1)
+		doc_b = B(_id2)
+		self.assertEqual(data_source['mary'].upper(),doc_a.uppercase.read())
+		self.assertEqual(data_source['humpty'].upper(),doc_b.uppercase.read())
 	
 	def test_can_write_different_documents_to_different_data_stores(self):
 		db1 = InMemoryDatabase()
@@ -325,8 +416,9 @@ class IntegrationTest(unittest2.TestCase):
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
 			_registry = {
-				Database : db1
+				Database.__name__ : db1
 			}
 		
 		class B(BaseModel):
@@ -334,8 +426,9 @@ class IntegrationTest(unittest2.TestCase):
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
 			_registry = {
-				Database : db2
+				Database.__name__ : db2
 			}
 		
 		_id1 = A.process(stream = 'mary')
@@ -344,7 +437,28 @@ class IntegrationTest(unittest2.TestCase):
 		self.assertEqual(1,len(list(db2.iter_ids())))
 	
 	def test_can_read_different_features_from_different_data_stores(self):
-		self.fail()
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
+			uppercase._registry = {
+				Database.__name__ : db1
+			}
+			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
+			lowercase._registry = {
+				Database.__name__ : db2
+			}
+				
+		_id = A.process(stream = 'mary')
+		doc = A(_id)
+		self.assertEqual(data_source['mary'].upper(),doc.uppercase.read())
+		self.assertEqual(data_source['mary'].lower(),doc.lowercase.read())
 	
 	def test_can_write_different_features_to_different_data_stores(self):
 		db1 = InMemoryDatabase()
@@ -355,12 +469,14 @@ class IntegrationTest(unittest2.TestCase):
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = True)
 			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
 			uppercase._registry = {
-				Database : db1
+				Database.__name__ : db1
 			}
 			
+			#KLUDGE: This is a shit way to do this.  How about a decorator?
 			lowercase._registry = {
-				Database : db2
+				Database.__name__ : db2
 			}
 				
 		_id = A.process(stream = 'mary')

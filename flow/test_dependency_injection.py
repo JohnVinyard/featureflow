@@ -73,5 +73,9 @@ class DependencyInjectionTest(unittest2.TestCase):
                 pass
         inst = X()
         self.assertEqual('method',inst.method.__name__)
+        
+        
+        
+        
             
     

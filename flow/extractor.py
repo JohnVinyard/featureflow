@@ -81,8 +81,7 @@ class Node(object):
             self._push(None)
             yield None
 
-class NotEnoughData(Exception):
-    pass
+class NotEnoughData(Exception): pass
 
 class Graph(dict):
 

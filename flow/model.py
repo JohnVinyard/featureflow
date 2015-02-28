@@ -1,7 +1,7 @@
 from extractor import Graph
 from dependency_injection import dependency
 from feature import Feature
-from data import DataReader,IdProvider,StringIODataWriter
+from data import IdProvider,StringIODataWriter
 
 class MetaModel(type):
 
@@ -18,21 +18,21 @@ class MetaModel(type):
             
     def _add_features(self,d):
         for k,v in d.iteritems():
-            if isinstance(v,Feature):
-                v.key = k
-                self.features[k] = v
-                
-                # KLUDGE: I shouldn't know about the DI code here
-                try:
-                    v._registry = self._registry
-                except AttributeError:
-                    pass
+            if not isinstance(v,Feature): continue
+            v.key = k
+            self.features[k] = v
+            
+            # KLUDGE: I shouldn't know about the DI code here
+            try:
+                v.set_registry(self._registry)
+            except AttributeError:
+                pass
     
-    def iterfeatures(self):
-        return self.features.iteritems()
+#    def iterfeatures(self):
+#        return self.features.iteritems()
     
-    def stored_features(self):
-        return filter(lambda f : f.store,self.features.itervalues())
+#    def stored_features(self):
+#        return filter(lambda f : f.store,self.features.itervalues())
     
 
 class BaseModel(object):
@@ -42,10 +42,7 @@ class BaseModel(object):
     def __init__(self,_id):
         super(BaseModel,self).__init__()
         self._id = _id
-    
-    @dependency(DataReader)
-    def reader(self,_id,key): pass
-    
+        
     def __getattribute__(self,key):
         f = object.__getattribute__(self,key)
 
@@ -55,7 +52,7 @@ class BaseModel(object):
         feature = getattr(self.__class__,key)
 
         if f.store:        
-            raw = self.reader(self._id, key)
+            raw = f.reader(self._id, key)
             decoded = feature.decoder(raw)
             setattr(self,key,decoded)
             return decoded
@@ -64,8 +61,22 @@ class BaseModel(object):
             raise AttributeError('%s cannot be computed' % f.key)
 
         graph,data_writer = self._build_partial(self._id,f)
-        kwargs = dict(\
-          (k,self.reader(self._id,k)) for k,_ in graph.roots().iteritems())
+        
+        # BUG: The issue here is that I'm assuming the reader for f should be
+        # used for all nodes in the extractor graph, which is not accurate.
+#        kwargs = dict(\
+#          (k,f.reader(self._id,k)) for k,_ in graph.roots().iteritems())
+        
+#        kwargs = dict(\
+#          (k,e.__reader or self.reader(self._id,k)) for k,e in graph.roots().iteritems())
+#        print kwargs
+        kwargs = dict()
+        for k,extractor in graph.roots().iteritems():
+            try:
+                reader = extractor.__reader
+            except AttributeError:
+                reader = f.reader(self._id,k)
+            kwargs[k] = reader  
         graph.process(**kwargs)
 
         stream = data_writer._stream
@@ -102,17 +113,3 @@ class BaseModel(object):
         graph = cls._build_extractor(_id)
         graph.process(**kwargs)
         return _id
-
-class Partial(object):
-
-    def __init__(self,feature,extractor):
-        super(Partial,self).__init__()
-        self.feature = feature
-        self.extractor = extractor
-
-    def process(self,data):
-        return self.extractor.process(data)
-
-    @property
-    def key(self):
-        return self.feature.key

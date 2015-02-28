@@ -141,25 +141,3 @@ class StringIODataWriter(Node):
 
     def _process(self,data):
         yield self._stream.write(data)
-
-class DataReader(object):
-    '''
-    Marker class for object that reads from the datastore
-    '''
-    def __init__(self,_id = None, feature = None):
-        super(DataReader,self).__init__()
-
-class DataReaderFactory(object):
-    
-    @property
-    @dependency(Database)
-    def database(self): pass
-
-    @property
-    @dependency(KeyBuilder)
-    def key_builder(self): pass
-    
-    def __call__(self,_id,feature_name):
-        return self.database.read_stream(\
-            self.key_builder.build(_id,feature_name))
-

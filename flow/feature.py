@@ -1,7 +1,7 @@
 from encoder import IdentityEncoder,JSONEncoder,TextEncoder
 from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode
 from dependency_injection import dependency
-from data import DataWriter,DataReader,StringIODataWriter
+from data import DataWriter,StringIODataWriter,Database,KeyBuilder
 
 class Feature(object):
     
@@ -46,7 +46,7 @@ class Feature(object):
         Use self as a template to build a new feature, replacing
         values in kwargs
         '''
-        return Feature(\
+        f = Feature(\
             extractor or self.extractor,
             needs = needs,
             store = self.store if store is None else store,
@@ -55,9 +55,34 @@ class Feature(object):
             key = self.key,
             data_writer = data_writer,
             **(extractor_args or self.extractor_args))
+        try:
+            f.set_registry(self._registry)
+        except AttributeError:
+            pass
+        
+        return f
+    
+    def set_registry(self,registry):
+        self._registry = registry
 
     def add_dependency(self,feature):
         self.needs.append(feature)
+    
+    @property
+    @dependency(KeyBuilder)
+    def keybuilder(self): pass
+
+    @property
+    @dependency(Database)
+    def database(self): pass
+    
+    @dependency(DataWriter)
+    def _data_writer(self,needs = None, _id = None, feature_name = None):
+        pass
+    
+    def reader(self,_id,key):
+        return self.database.read_stream(\
+             self.keybuilder.build(_id,key))
 
     @property
     def is_root(self):
@@ -67,13 +92,6 @@ class Feature(object):
     def content_type(self):
         return self.encoder.content_type
     
-    @dependency(DataWriter)
-    def _data_writer(self,needs = None, _id = None, feature_name = None):
-        pass
-
-    @dependency(DataReader)
-    def reader(self,_id,key): pass
-
     def _can_compute(self):
         '''
         Return true if this feature stored, or is unstored, but can be computed
@@ -133,23 +151,16 @@ class Feature(object):
         
         needs = self._depends_on(_id,graph)
         e = self.extractor(needs = needs,**self.extractor_args)
+        if isinstance(e,DecoderNode):
+            setattr(e,'__reader',self.reader(_id,self.key))
         graph[self.key] = e
         if not self.store: return e
         key = self.key
         encoder = self.encoder(needs = e)
         graph['{key}_encoder'.format(**locals())] = encoder
         
-        # TODO: Here the DataWriter is monolithic.  What if the data writer 
-        # varies by feature, e.g., some values are written to a database, while
-        # others are published to a work queue?
         dw = self._data_writer(\
             needs = encoder, _id = _id, feature_name = self.key)
-        
-        # KLUDGE: I shouldn't know about the DI code here
-        try:
-            dw._registry = self._registry
-        except AttributeError:
-            pass
         
         graph['{key}_writer'.format(**locals())] = dw
         return e

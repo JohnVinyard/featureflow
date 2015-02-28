@@ -34,7 +34,14 @@ class Feature(object):
 
         if data_writer:
             self._data_writer = data_writer
-
+            
+    def __repr__(self):
+        return '{cls}(key = {key}, store = {store})'.format(\
+            cls = self.__class__.__name__,**self.__dict__)
+    
+    def __str__(self):
+        return self.__repr__()
+    
     def copy(\
         self,
         extractor = None,
@@ -152,7 +159,9 @@ class Feature(object):
         needs = self._depends_on(_id,graph)
         e = self.extractor(needs = needs,**self.extractor_args)
         if isinstance(e,DecoderNode):
-            setattr(e,'__reader',self.reader(_id,self.key))
+            reader = self.reader(_id,self.key)
+            setattr(e,'_reader',reader)
+            
         graph[self.key] = e
         if not self.store: return e
         key = self.key

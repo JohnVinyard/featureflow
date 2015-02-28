@@ -19,12 +19,22 @@ class Node(object):
 
         for n in self._needs:
             n.add_listener(self)
+    
+    def __repr__(self):
+        return self.__class__.__name__
+    
+    def __str__(self):
+        return self.__repr__()
 
     def __enter__(self):
         return self
 
     def __exit__(self,t,value,traceback):
         pass
+    
+    @property
+    def needs(self):
+        return self._needs
 
     @property
     def is_root(self):

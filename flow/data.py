@@ -64,9 +64,10 @@ class Database(object):
 
 class InMemoryDatabase(Database):
 
-    def __init__(self):
+    def __init__(self,name = None):
         super(InMemoryDatabase,self).__init__()
         self._dict = dict()
+        self._name = name
 
     def write_stream(self,key,content_type):
         sio = StringIO()
@@ -93,6 +94,14 @@ class InMemoryDatabase(Database):
             if _id in seen: continue
             yield _id
             seen.add(_id)
+    
+    def __str__(self):
+        return self.__repr__()
+    
+    def __repr__(self):
+        return '{cls}(name = {name})'.format(\
+             cls = self.__class__.__name__,
+             name = self._name)
 
 class DataWriter(Node):
     

@@ -26,14 +26,7 @@ class MetaModel(type):
             try:
                 v.set_registry(self._registry)
             except AttributeError:
-                pass
-    
-#    def iterfeatures(self):
-#        return self.features.iteritems()
-    
-#    def stored_features(self):
-#        return filter(lambda f : f.store,self.features.itervalues())
-    
+                pass    
 
 class BaseModel(object):
     
@@ -51,7 +44,7 @@ class BaseModel(object):
 
         feature = getattr(self.__class__,key)
 
-        if f.store:        
+        if f.store:     
             raw = f.reader(self._id, key)
             decoded = feature.decoder(raw)
             setattr(self,key,decoded)
@@ -61,24 +54,14 @@ class BaseModel(object):
             raise AttributeError('%s cannot be computed' % f.key)
 
         graph,data_writer = self._build_partial(self._id,f)
-        
-        # BUG: The issue here is that I'm assuming the reader for f should be
-        # used for all nodes in the extractor graph, which is not accurate.
-#        kwargs = dict(\
-#          (k,f.reader(self._id,k)) for k,_ in graph.roots().iteritems())
-        
-#        kwargs = dict(\
-#          (k,e.__reader or self.reader(self._id,k)) for k,e in graph.roots().iteritems())
-#        print kwargs
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
             try:
-                reader = extractor.__reader
+                reader = extractor._reader
             except AttributeError:
                 reader = f.reader(self._id,k)
             kwargs[k] = reader  
         graph.process(**kwargs)
-
         stream = data_writer._stream
         stream.seek(0)
         decoded = feature.decoder(stream)

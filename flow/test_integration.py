@@ -1,6 +1,7 @@
 import unittest2
 from collections import defaultdict
 import time
+import random
 
 from extractor import NotEnoughData
 from model import BaseModel
@@ -57,16 +58,36 @@ class Concatenate(Node):
 		self._cache[id(pusher)] += data
 
 	def _dequeue(self):
-		if not self._finalized:
+		if not self._finalized or (self._cache and len(self._cache) < len(self.needs)):
 			raise NotEnoughData()
-
-		return self._cache
+		return super(Concatenate,self)._dequeue()
 
 	def _process(self,data):
 		s = ''
 		for v in data.itervalues():
 			s += v
 		yield s
+
+class SumUp(Node):
+
+	def __init__(self, needs = None):
+		super(SumUp,self).__init__(needs = needs)
+		self._cache = dict()
+
+	def _enqueue(self,data,pusher):
+		self._cache[id(pusher)] = data
+
+	def _dequeue(self):
+		if len(self._cache) != len(self._needs):
+			raise NotEnoughData()
+		v = self._cache
+		self._cache = dict()
+		return v
+
+	def _process(self,data):
+		results = [str(sum(x)) for x in zip(*data.itervalues())]
+		yield ''.join(results)
+
 
 class Timestamp(Node):
 	
@@ -77,10 +98,10 @@ class Timestamp(Node):
 	def _dequeue(self):
 		if not self._finalized: 
 			raise NotEnoughData()
-		return self._cache
+		return super(Timestamp,self)._dequeue()
 	
 	def _process(self,data):
-		yield str(time.time())
+		yield str(random.random())
 
 class EagerConcatenate(Node):
 	
@@ -117,25 +138,6 @@ class Add(Node):
 	def _process(self,data):
 		yield [c + self._rhs for c in data]
 
-class SumUp(Node):
-
-	def __init__(self, needs = None):
-		super(SumUp,self).__init__(needs = needs)
-		self._cache = dict()
-
-	def _enqueue(self,data,pusher):
-		self._cache[id(pusher)] = data
-
-	def _dequeue(self):
-		if len(self._cache) != len(self._needs):
-			raise NotEnoughData()
-		v = self._cache
-		self._cache = dict()
-		return v
-
-	def _process(self,data):
-		results = [str(sum(x)) for x in zip(*data.itervalues())]
-		yield ''.join(results)
 
 class Tokenizer(Node):
 	
@@ -231,12 +233,6 @@ class Document2(BaseModel):
 	words  = Feature(Tokenizer, needs = stream, store = False)
 	count  = JSONFeature(WordCount, needs = words, store = True)
 
-class Numbers(BaseModel):
-
-	stream = Feature(NumberStream,store = False)
-	add1 = Feature(Add, needs = stream, store = False, rhs = 1)
-	add2 = Feature(Add, needs = stream, store = False, rhs = 1)
-	sumup = Feature(SumUp, needs = [add1,add2], store = True)
 
 class Doc3(BaseModel):
 
@@ -262,7 +258,7 @@ class IntegrationTest(unittest2.TestCase):
 	def setUp(self):
 		Registry.register(IdProvider,UuidProvider())
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,InMemoryDatabase())
+		Registry.register(Database,InMemoryDatabase(name = 'root'))
 		Registry.register(DataWriter,DataWriter)
 
 	def test_stored_features_are_not_rewritten_when_computing_dependent_feature(self):
@@ -334,6 +330,13 @@ class IntegrationTest(unittest2.TestCase):
 		self.assertRaises(AttributeError,lambda : doc.stream)
 
 	def test_feature_with_multiple_inputs(self):
+		
+		class Numbers(BaseModel):
+			stream = Feature(NumberStream,store = False)
+			add1 = Feature(Add, needs = stream, store = False, rhs = 1)
+			add2 = Feature(Add, needs = stream, store = False, rhs = 1)
+			sumup = Feature(SumUp, needs = [add1,add2], store = True)
+
 		_id = Numbers.process(stream = 'numbers')
 		doc = Numbers(_id)
 		self.assertEqual('2468101214161820',doc.sumup.read())
@@ -343,9 +346,30 @@ class IntegrationTest(unittest2.TestCase):
 		doc = Doc3(_id)
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	
+	def test_can_read_computed_property_with_multiple_dependencies(self):
+		
+		class Split(BaseModel):
+			stream = Feature(TextStream, store = False)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+			cat = Feature(\
+				Concatenate, needs = [uppercase,lowercase], store = False)
+		
+		keyname = 'cased'
+		_id = Split.process(stream = keyname)
+		doc = Split(_id)
+		
+		self.assertEqual(data_source[keyname].upper(),doc.uppercase.read())
+		self.assertEqual(data_source[keyname].lower(),doc.lowercase.read())
+		
+		doc.uppercase.seek(0)
+		doc.lowercase.seek(0)
+		
+		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+	
 	def test_can_read_computed_property_when_dependencies_are_in_different_data_stores(self):
-		db1 = InMemoryDatabase()
-		db2 = InMemoryDatabase()
+		db1 = InMemoryDatabase('alt1')
+		db2 = InMemoryDatabase('alt2')
 		
 		class Split(BaseModel):
 			stream = Feature(TextStream, store = False)
@@ -362,7 +386,8 @@ class IntegrationTest(unittest2.TestCase):
 				Database.__name__ : db2
 			}
 		
-		_id = Split.process(stream = 'cased')
+		keyname = 'cased'
+		_id = Split.process(stream = keyname)
 		doc = Split(_id)
 		
 		_ids1 = set(db1.iter_ids())
@@ -370,8 +395,11 @@ class IntegrationTest(unittest2.TestCase):
 		self.assertTrue(_id in _ids1)
 		self.assertTrue(_id in _ids2)
 		
-		self.assertEqual(data_source['cased'].upper(),doc.uppercase.read())
-		self.assertEqual(data_source['cased'].lower(),doc.lowercase.read())
+		self.assertEqual(data_source[keyname].upper(),doc.uppercase.read())
+		self.assertEqual(data_source[keyname].lower(),doc.lowercase.read())
+		
+		doc.uppercase.seek(0)
+		doc.lowercase.seek(0)
 		
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	

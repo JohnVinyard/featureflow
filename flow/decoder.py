@@ -53,5 +53,4 @@ class DecoderNode(Node):
 
 	def _process(self,data):
 		for x in self.decoder.__iter__(data):
-			print 'yielding',x
 			yield x

@@ -63,10 +63,7 @@ class Concatenate(Node):
 		return super(Concatenate,self)._dequeue()
 
 	def _process(self,data):
-		s = ''
-		for v in data.itervalues():
-			s += v
-		yield s
+		yield ''.join(data.itervalues())
 
 class SumUp(Node):
 
@@ -273,7 +270,7 @@ class IntegrationTest(unittest2.TestCase):
 		doc1 = Timestamps(_id)
 		orig = doc1.t1.read()
 		doc2 = Timestamps(_id)
-		computed = doc2.cat.read()
+		_ = doc2.cat.read()
 		new = doc2.t1.read()
 		self.assertEqual(orig,new)
 	
@@ -397,9 +394,6 @@ class IntegrationTest(unittest2.TestCase):
 		
 		self.assertEqual(data_source[keyname].upper(),doc.uppercase.read())
 		self.assertEqual(data_source[keyname].lower(),doc.lowercase.read())
-		
-		doc.uppercase.seek(0)
-		doc.lowercase.seek(0)
 		
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	

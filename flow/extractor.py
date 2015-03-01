@@ -8,7 +8,6 @@ class Node(object):
         super(Node,self).__init__()
         self._cache = None
         self._listeners = []
-        self._finalized = False
 
         if needs is None:
             self._needs = []
@@ -20,7 +19,7 @@ class Node(object):
         for n in self._needs:
             n.add_listener(self)
         
-        self._finalized_count = 0
+        self._finalized_dependencies = set()
     
     def __repr__(self):
         return self.__class__.__name__
@@ -67,9 +66,11 @@ class Node(object):
         yield data
 
     def _finalize(self,pusher):
-        self._finalized_count += 1
-        if self._finalized_count >= len(self._needs):
-            self._finalized = True
+        self._finalized_dependencies.add(id(pusher))
+    
+    @property
+    def _finalized(self):
+        return len(self._finalized_dependencies) >= len(self._needs) 
 
     def _push(self,data):
         for l in self._listeners:

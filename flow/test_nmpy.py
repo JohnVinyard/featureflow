@@ -9,6 +9,7 @@ except ImportError:
 from dependency_injection import Registry
 from data import *
 from model import BaseModel
+from util import TempDir
 
 
 class PassThrough(Node):
@@ -25,8 +26,11 @@ class BaseNumpyTest(object):
 		if np is None: self.skipTest('numpy is not available')
 		Registry.register(IdProvider,UuidProvider())
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,InMemoryDatabase())
+		self._register_database()
 		Registry.register(DataWriter,DataWriter)
+	
+	def _register_database(self):
+		raise NotImplemented()
 	
 	def test_can_store_and_retrieve_empty_array(self):
 		self._arrange((0,),np.uint8)
@@ -42,6 +46,9 @@ class BaseNumpyTest(object):
 
 class GreedyNumpyTest(BaseNumpyTest,unittest2.TestCase):
 	
+	def _register_database(self):
+		Registry.register(Database, InMemoryDatabase())
+		
 	def _arrange(self,shape,dtype):
 		class Doc(BaseModel):
 			feat = NumpyFeature(PassThrough,store = True)
@@ -53,7 +60,55 @@ class GreedyNumpyTest(BaseNumpyTest,unittest2.TestCase):
 		self.assertEqual(np.product(shape),arr.size)
 		self.assertEqual(dtype,arr.dtype)
 
+class GreedyNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
+	
+	def _register_database(self):
+		self._dir = TempDir()
+		Registry.register(Database, FileSystemDatabase(path = self._dir.path))
+	
+	def tearDown(self):
+		self._dir.cleanup()
+		
+	def _arrange(self,shape,dtype):
+		class Doc(BaseModel):
+			feat = NumpyFeature(PassThrough,store = True)
+
+		_id = Doc.process(feat = np.zeros(shape,dtype = dtype))
+		doc = Doc(_id)
+		arr = doc.feat
+		self.assertTrue(isinstance(arr,np.ndarray))
+		self.assertEqual(np.product(shape),arr.size)
+		self.assertEqual(dtype,arr.dtype)
+
+
 class StreamingNumpyTest(BaseNumpyTest,unittest2.TestCase):
+	
+	def _register_database(self):
+		Registry.register(Database, InMemoryDatabase())
+	
+	def _arrange(self,shape,dtype):
+		class Doc(BaseModel):
+			feat = NumpyFeature(\
+				PassThrough,
+				store = True, 
+				decoder = StreamingNumpyDecoder(n_examples = 3))
+
+		_id = Doc.process(feat = np.zeros(shape,dtype = dtype))
+		doc = Doc(_id)
+		iterator = doc.feat
+		arr = np.concatenate(list(iterator))
+		self.assertTrue(isinstance(arr,np.ndarray))
+		self.assertEqual(np.product(shape),arr.size)
+		self.assertEqual(dtype,arr.dtype)
+
+class StreamingNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
+	
+	def _register_database(self):
+		self._dir = TempDir()
+		Registry.register(Database, FileSystemDatabase(path = self._dir.path))
+	
+	def tearDown(self):
+		self._dir.cleanup()
 	
 	def _arrange(self,shape,dtype):
 		class Doc(BaseModel):

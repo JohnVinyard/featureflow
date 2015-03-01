@@ -1,4 +1,6 @@
 import os
+from uuid import uuid4
+import shutil
 
 def chunked(f, chunksize = 4096):
     data = f.read(chunksize)
@@ -31,3 +33,16 @@ def ensure_path_exists(filename_or_directory):
         except OSError:
             # This probably means that the path already exists
             pass
+
+class TempDir(object):
+    
+    def __init__(self):
+        self._path = '/tmp/' + uuid4().hex[:6]
+        ensure_path_exists(self._path)
+    
+    @property
+    def path(self):
+        return self._path
+    
+    def cleanup(self):
+        shutil.rmtree(self._path)

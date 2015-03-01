@@ -1,15 +1,13 @@
 import unittest2
 from collections import defaultdict
 import random
-from uuid import uuid4
-import shutil
 
 from extractor import NotEnoughData
 from model import BaseModel
 from feature import Feature,JSONFeature
 from dependency_injection import Registry
 from data import *
-from util import chunked,ensure_path_exists
+from util import chunked,TempDir
 
 data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
@@ -527,14 +525,13 @@ class InMemoryTest(BaseTest,unittest2.TestCase):
 class FileSystemTest(BaseTest,unittest2.TestCase):
 	
 	def setUp(self):
-		self._dir = '/tmp/' + uuid4().hex[:6]
-		ensure_path_exists(self._dir)
+		self._dir = TempDir()
 		Registry.register(IdProvider,UuidProvider())
 		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,FileSystemDatabase(path = self._dir))
+		Registry.register(Database,FileSystemDatabase(path = self._dir.path))
 		Registry.register(DataWriter,DataWriter)
 	
 	def tearDown(self):
-		shutil.rmtree(self._dir)
+		self._dir.cleanup()
 	
 		

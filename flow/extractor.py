@@ -71,8 +71,7 @@ class Node(object):
         yield data
 
     def _finalize(self,pusher):
-        if pusher in self._needs:
-            self._finalized_dependencies.add(id(pusher))
+        pass
     
     @property
     def _finalized(self):
@@ -91,6 +90,8 @@ class Node(object):
 
     def __finalize(self,pusher = None):
         self._finalize(pusher)
+        if pusher in self._needs:
+            self._finalized_dependencies.add(id(pusher))
         for l in self._listeners:
             l.__finalize(self)
 
@@ -109,6 +110,16 @@ class Node(object):
             self.__finalize()
             self._push(None)
             yield None
+
+class Aggregator(object):
+    
+    def __init__(self,needs = None):
+        super(Aggregator,self).__init__(needs = needs)
+    
+    def _dequeue(self):
+        if not self._finalized:
+            raise NotEnoughData()
+        return super(Aggregator,self)._dequeue()
 
 class NotEnoughData(Exception): pass
 

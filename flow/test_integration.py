@@ -2,7 +2,7 @@ import unittest2
 from collections import defaultdict
 import random
 
-from extractor import NotEnoughData
+from extractor import NotEnoughData,Aggregator
 from model import BaseModel
 from feature import Feature,JSONFeature
 from dependency_injection import Registry
@@ -47,28 +47,19 @@ class ToLower(Node):
 	def _process(self,data):
 		yield data.lower()
 
-class Concatenate(Node):
+class Concatenate(Aggregator,Node):
 
 	def __init__(self, needs = None):
 		super(Concatenate,self).__init__(needs = needs)
 		self._cache = defaultdict(str)
-		print 'Concatenate',self.needs,self._finalized_dependencies
-		print 'ids',[id(x) for x in self.needs]
 
 	def _enqueue(self,data,pusher):
-		print 'Concatenate enqueue',data,pusher,self._finalized,self._finalized_dependencies
 		self._cache[id(pusher)] += data
 
-	def _dequeue(self):
-		if not self._finalized:
-			raise NotEnoughData()
-		return super(Concatenate,self)._dequeue()
-
 	def _process(self,data):
-		print 'Concatenate process',data,self._finalized,self._finalized_dependencies
 		yield ''.join(data.itervalues())
 
-class WordCountAggregator(Node):
+class WordCountAggregator(Aggregator,Node):
 	
 	def __init__(self, needs = None):
 		super(WordCountAggregator,self).__init__(needs = needs)
@@ -77,11 +68,6 @@ class WordCountAggregator(Node):
 	def _enqueue(self,data,pusher):
 		for k,v in data.iteritems():
 			self._cache[k.lower()] += v
-	
-	def _dequeue(self):
-		if not self._finalized:
-			raise NotEnoughData()
-		return super(WordCountAggregator,self)._dequeue()
 
 class SumUp(Node):
 
@@ -162,7 +148,7 @@ class Tokenizer(Node):
 	def _process(self,data):
 		yield filter(lambda x : x, data.split(' '))
 
-class WordCount(Node):
+class WordCount(Aggregator,Node):
 	
 	def __init__(self, needs = None):
 		super(WordCount,self).__init__(needs = needs)
@@ -171,11 +157,6 @@ class WordCount(Node):
 	def _enqueue(self,data,pusher):
 		for word in data:
 			self._cache[word.lower()] += 1
-
-	def _dequeue(self):
-		if not self._finalized:
-			raise NotEnoughData()
-		return super(WordCount,self)._dequeue()
 
 class FeatureAggregator(Node):
 	
@@ -247,23 +228,16 @@ class BaseTest(object):
 		self.assertEqual(3,doc.aggregate['a'])
 
 	def test_stored_features_are_not_rewritten_when_computing_dependent_feature(self):	
-		class Timestamp(Node):
+		class Timestamp(Aggregator,Node):
 	
 			def __init__(self, needs = None):
 				super(Timestamp,self).__init__(needs = needs)
 				self._cache = ''
-				print 'Timestamp',self.needs
 			
 			def _enqueue(self,data,pusher):
 				self._cache += data
 			
-			def _dequeue(self):
-				if not self._finalized: 
-					raise NotEnoughData()
-				return super(Timestamp,self)._dequeue()
-			
 			def _process(self,data):
-				print 'Timestamp process',data,self._finalized
 				yield str(random.random())
 
 		class Timestamps(BaseModel):

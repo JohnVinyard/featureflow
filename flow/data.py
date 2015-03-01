@@ -1,5 +1,6 @@
 from StringIO import StringIO
 from uuid import uuid4
+import os
 
 from extractor import Node
 from dependency_injection import dependency
@@ -68,6 +69,10 @@ class InMemoryDatabase(Database):
         super(InMemoryDatabase,self).__init__()
         self._dict = dict()
         self._name = name
+    
+    @property
+    @dependency(KeyBuilder)
+    def key_builder(self): pass
 
     def write_stream(self,key,content_type):
         sio = StringIO()
@@ -82,10 +87,6 @@ class InMemoryDatabase(Database):
 
     def read_stream(self,key):
         return StringIO(self._dict[key])
-
-    @property
-    @dependency(KeyBuilder)
-    def key_builder(self): pass
 
     def iter_ids(self):
         seen = set()
@@ -102,6 +103,30 @@ class InMemoryDatabase(Database):
         return '{cls}(name = {name})'.format(\
              cls = self.__class__.__name__,
              name = self._name)
+
+class FileSystemDatabase(Database):
+    
+    def __init__(self, path):
+        super(FileSystemDatabase,self).__init__()
+        self._path = path
+    
+    @property
+    @dependency(KeyBuilder)
+    def key_builder(self): pass
+    
+    def write_stream(self,key,content_type):
+        return open(os.path.join(self._path,key),'wb')
+    
+    def read_stream(self,key):
+        return open(os.path.join(self._path,key),'rb')
+    
+    def iter_ids(self):
+        seen = set()
+        for fn in os.listdir(self._path):
+            _id,_ = self.key_builder.decompose(fn)
+            if _id in seen: continue
+            yield _id
+            seen.add(_id)
 
 class DataWriter(Node):
     

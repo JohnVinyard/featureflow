@@ -19,6 +19,8 @@ class Node(object):
 
         for n in self._needs:
             n.add_listener(self)
+        
+        self._finalized_count = 0
     
     def __repr__(self):
         return self.__class__.__name__
@@ -65,7 +67,9 @@ class Node(object):
         yield data
 
     def _finalize(self,pusher):
-        self._finalized = True
+        self._finalized_count += 1
+        if self._finalized_count >= len(self._needs):
+            self._finalized = True
 
     def _push(self,data):
         for l in self._listeners:

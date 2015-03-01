@@ -1,14 +1,15 @@
 import unittest2
 from collections import defaultdict
-import time
 import random
+from uuid import uuid4
+import shutil
 
 from extractor import NotEnoughData
 from model import BaseModel
 from feature import Feature,JSONFeature
 from dependency_injection import Registry
 from data import *
-from util import chunked
+from util import chunked,ensure_path_exists
 
 data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
@@ -58,12 +59,27 @@ class Concatenate(Node):
 		self._cache[id(pusher)] += data
 
 	def _dequeue(self):
-		if not self._finalized or (self._cache and len(self._cache) < len(self.needs)):
+		if not self._finalized:
 			raise NotEnoughData()
 		return super(Concatenate,self)._dequeue()
 
 	def _process(self,data):
 		yield ''.join(data.itervalues())
+
+class WordCountAggregator(Node):
+	
+	def __init__(self, needs = None):
+		super(WordCountAggregator,self).__init__(needs = needs)
+		self._cache = defaultdict(int)
+	
+	def _enqueue(self,data,pusher):
+		for k,v in data.iteritems():
+			self._cache[k.lower()] += v
+	
+	def _dequeue(self):
+		if not self._finalized:
+			raise NotEnoughData()
+		return super(WordCountAggregator,self)._dequeue()
 
 class SumUp(Node):
 
@@ -84,21 +100,6 @@ class SumUp(Node):
 	def _process(self,data):
 		results = [str(sum(x)) for x in zip(*data.itervalues())]
 		yield ''.join(results)
-
-
-class Timestamp(Node):
-	
-	def __init__(self, needs = None):
-		super(Timestamp,self).__init__(needs = needs)
-		self._cache = ''
-	
-	def _dequeue(self):
-		if not self._finalized: 
-			raise NotEnoughData()
-		return super(Timestamp,self)._dequeue()
-	
-	def _process(self,data):
-		yield str(random.random())
 
 class EagerConcatenate(Node):
 	
@@ -174,21 +175,6 @@ class WordCount(Node):
 			raise NotEnoughData()
 		return super(WordCount,self)._dequeue()
 
-class WordCountAggregator(Node):
-	
-	def __init__(self, needs = None):
-		super(WordCountAggregator,self).__init__(needs = needs)
-		self._cache = defaultdict(int)
-	
-	def _enqueue(self,data,pusher):
-		for k,v in data.iteritems():
-			self._cache[k.lower()] += v
-	
-	def _dequeue(self):
-		if not self._finalized:
-			raise NotEnoughData()
-		return super(WordCountAggregator,self)._dequeue()
-
 class FeatureAggregator(Node):
 	
 	def __init__(self, cls = None, feature = None, needs = None):
@@ -230,14 +216,6 @@ class Document2(BaseModel):
 	words  = Feature(Tokenizer, needs = stream, store = False)
 	count  = JSONFeature(WordCount, needs = words, store = True)
 
-
-class Doc3(BaseModel):
-
-	stream = Feature(TextStream, store = True)
-	uppercase = Feature(ToUpper, needs = stream, store = True)
-	lowercase = Feature(ToLower, needs = stream, store = False)
-	cat = Feature(Concatenate, needs = [uppercase,lowercase], store = False)
-
 class Doc4(BaseModel):
 	
 	stream = Feature(TextStream, chunksize = 10, store = False)
@@ -248,17 +226,39 @@ class MultipleRoots(BaseModel):
 	stream1 = Feature(TextStream, chunksize = 3, store = False)
 	stream2 = Feature(TextStream, chunksize = 3, store = False)
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
+
+class BaseTest(object):
 	
+	def test_can_aggregate_word_counts_from_multiple_inputs(self):
+		class Contrived(BaseModel):
+			stream1 = Feature(TextStream,store = False)
+			stream2 = Feature(TextStream,store = False)
+			t1 = Feature(Tokenizer,needs = stream1,store = False)
+			t2 = Feature(Tokenizer,needs = stream2,store = False)
+			count1 = JSONFeature(WordCount, needs = t1, store = True)
+			count2 = JSONFeature(WordCount, needs = t2, store = True)
+			aggregate = JSONFeature(\
+					WordCountAggregator, needs = [count1,count2], store = True)
+		
+		_id = Contrived.process(stream1 = 'mary',stream2 = 'humpty')
+		doc = Contrived(_id)
+		self.assertEqual(3,doc.aggregate['a'])
 
-class IntegrationTest(unittest2.TestCase):
+	def test_stored_features_are_not_rewritten_when_computing_dependent_feature(self):	
+		class Timestamp(Node):
+	
+			def __init__(self, needs = None):
+				super(Timestamp,self).__init__(needs = needs)
+				self._cache = ''
+			
+			def _dequeue(self):
+				if not self._finalized: 
+					raise NotEnoughData()
+				return super(Timestamp,self)._dequeue()
+			
+			def _process(self,data):
+				yield str(random.random())
 
-	def setUp(self):
-		Registry.register(IdProvider,UuidProvider())
-		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,InMemoryDatabase(name = 'root'))
-		Registry.register(DataWriter,DataWriter)
-
-	def test_stored_features_are_not_rewritten_when_computing_dependent_feature(self):
 		class Timestamps(BaseModel):
 			stream = Feature(TextStream, store = True)
 			t1 = Feature(Timestamp, needs = stream, store = True)
@@ -339,6 +339,14 @@ class IntegrationTest(unittest2.TestCase):
 		self.assertEqual('2468101214161820',doc.sumup.read())
 
 	def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
+		
+		class Doc3(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = False)
+			cat = Feature(\
+				Concatenate, needs = [uppercase,lowercase], store = False)
+
 		_id = Doc3.process(stream = 'cased')
 		doc = Doc3(_id)
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
@@ -507,4 +515,26 @@ class IntegrationTest(unittest2.TestCase):
 		
 		self.assertTrue(_id in _ids1)
 		self.assertTrue(_id in _ids2)
+
+class InMemoryTest(BaseTest,unittest2.TestCase):
+
+	def setUp(self):
+		Registry.register(IdProvider,UuidProvider())
+		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
+		Registry.register(Database,InMemoryDatabase(name = 'root'))
+		Registry.register(DataWriter,DataWriter)
+
+class FileSystemTest(BaseTest,unittest2.TestCase):
+	
+	def setUp(self):
+		self._dir = '/tmp/' + uuid4().hex[:6]
+		ensure_path_exists(self._dir)
+		Registry.register(IdProvider,UuidProvider())
+		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
+		Registry.register(Database,FileSystemDatabase(path = self._dir))
+		Registry.register(DataWriter,DataWriter)
+	
+	def tearDown(self):
+		shutil.rmtree(self._dir)
+	
 		

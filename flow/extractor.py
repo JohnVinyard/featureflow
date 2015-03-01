@@ -20,7 +20,8 @@ class Node(object):
             n.add_listener(self)
         
         self._finalized_dependencies = set()
-    
+        self._enqueued_dependencies = set()
+
     def __repr__(self):
         return self.__class__.__name__
     
@@ -36,6 +37,10 @@ class Node(object):
     @property
     def needs(self):
         return self._needs
+    
+    @property
+    def dependency_count(self):
+        return len(self._needs)
 
     @property
     def is_root(self):
@@ -66,11 +71,19 @@ class Node(object):
         yield data
 
     def _finalize(self,pusher):
-        self._finalized_dependencies.add(id(pusher))
+        if pusher in self._needs:
+            self._finalized_dependencies.add(id(pusher))
     
     @property
     def _finalized(self):
-        return len(self._finalized_dependencies) >= len(self._needs) 
+        '''
+        Return true if all dependencies have informed this node that they'll
+        be sending no more data (by calling _finalize()), and that they have
+        sent at least one batch of data (by calling enqueue())
+        '''
+        return \
+            len(self._finalized_dependencies) >= self.dependency_count \
+            and len(self._enqueued_dependencies) >= self.dependency_count 
 
     def _push(self,data):
         for l in self._listeners:
@@ -83,6 +96,7 @@ class Node(object):
 
     def process(self,data = None,pusher = None):
         if data is not None:
+            self._enqueued_dependencies.add(id(pusher))
             self._enqueue(data,pusher)
 
         try:
@@ -91,7 +105,7 @@ class Node(object):
         except NotEnoughData:
             yield None
 
-        if self.is_root:
+        if self.is_root or self._finalized:
             self.__finalize()
             self._push(None)
             yield None

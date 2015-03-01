@@ -52,8 +52,11 @@ class Concatenate(Node):
 	def __init__(self, needs = None):
 		super(Concatenate,self).__init__(needs = needs)
 		self._cache = defaultdict(str)
+		print 'Concatenate',self.needs,self._finalized_dependencies
+		print 'ids',[id(x) for x in self.needs]
 
 	def _enqueue(self,data,pusher):
+		print 'Concatenate enqueue',data,pusher,self._finalized,self._finalized_dependencies
 		self._cache[id(pusher)] += data
 
 	def _dequeue(self):
@@ -62,6 +65,7 @@ class Concatenate(Node):
 		return super(Concatenate,self)._dequeue()
 
 	def _process(self,data):
+		print 'Concatenate process',data,self._finalized,self._finalized_dependencies
 		yield ''.join(data.itervalues())
 
 class WordCountAggregator(Node):
@@ -248,6 +252,10 @@ class BaseTest(object):
 			def __init__(self, needs = None):
 				super(Timestamp,self).__init__(needs = needs)
 				self._cache = ''
+				print 'Timestamp',self.needs
+			
+			def _enqueue(self,data,pusher):
+				self._cache += data
 			
 			def _dequeue(self):
 				if not self._finalized: 
@@ -255,6 +263,7 @@ class BaseTest(object):
 				return super(Timestamp,self)._dequeue()
 			
 			def _process(self,data):
+				print 'Timestamp process',data,self._finalized
 				yield str(random.random())
 
 		class Timestamps(BaseModel):
@@ -271,6 +280,7 @@ class BaseTest(object):
 		_ = doc2.cat.read()
 		new = doc2.t1.read()
 		self.assertEqual(orig,new)
+		self.assertEqual(doc2.t1.read() + doc2.t1.read(),doc2.cat.read())
 	
 	def test_can_process_multiple_documents_and_then_aggregate_word_count(self):
 		_id1 = Document.process(stream = 'mary')

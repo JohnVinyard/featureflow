@@ -54,13 +54,15 @@ class BaseModel(object):
             raise AttributeError('%s cannot be computed' % f.key)
 
         graph,data_writer = self._build_partial(self._id,f)
+        
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
             try:
                 reader = extractor._reader
             except AttributeError:
                 reader = f.reader(self._id,k)
-            kwargs[k] = reader  
+            kwargs[k] = reader
+          
         graph.process(**kwargs)
         stream = data_writer._stream
         stream.seek(0)

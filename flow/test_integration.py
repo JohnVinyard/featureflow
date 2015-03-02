@@ -367,13 +367,7 @@ class BaseTest(object):
 			
 			register(uppercase,Database,db1)
 			register(lowercase,Database,db2)
-#			uppercase._registry = {
-#				Database.__name__ : db1
-#			}
-#			
-#			lowercase._registry = {
-#				Database.__name__ : db2
-#			}
+
 		
 		keyname = 'cased'
 		_id = Split.process(stream = keyname)

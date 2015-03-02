@@ -95,14 +95,6 @@ class InMemoryDatabase(Database):
             if _id in seen: continue
             yield _id
             seen.add(_id)
-    
-#    def __str__(self):
-#        return self.__repr__()
-#    
-#    def __repr__(self):
-#        return '{cls}(name = {name})'.format(\
-#             cls = self.__class__.__name__,
-#             name = self._name)
 
 class FileSystemDatabase(Database):
     

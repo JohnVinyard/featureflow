@@ -4,7 +4,7 @@ from feature import Feature
 from data import IdProvider,StringIODataWriter
 
 class MetaModel(type):
-
+    
     def __init__(self,name,bases,attrs):
         
         self.features = {}
@@ -15,6 +15,21 @@ class MetaModel(type):
         self._add_features(attrs)
         
         super(MetaModel,self).__init__(name,bases,attrs)
+    
+    def iter_features(self):
+        return self.features.itervalues()
+
+    # KLUDGE: I shouldn't know about the DI code here, but
+    # this is my best idea about how to ensure that 
+    # model-level registries can be passed along to features.
+    # It's important to understand that the decorator code doesn't
+    # run until after __init__, which is too late.
+    def _on_register(self):
+        for v in self.features.itervalues():
+            try:
+                v.set_registry(self._registry)
+            except AttributeError:
+                pass
             
     def _add_features(self,d):
         for k,v in d.iteritems():
@@ -22,12 +37,6 @@ class MetaModel(type):
             v.key = k
             self.features[k] = v
             
-            # KLUDGE: I shouldn't know about the DI code here
-            try:
-                v.set_registry(self._registry)
-            except AttributeError:
-                pass    
-
 class BaseModel(object):
     
     __metaclass__ = MetaModel

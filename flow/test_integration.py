@@ -5,7 +5,7 @@ import random
 from extractor import NotEnoughData,Aggregator
 from model import BaseModel
 from feature import Feature,JSONFeature
-from dependency_injection import Registry
+from dependency_injection import Registry,register
 from data import *
 from util import chunked,TempDir
 
@@ -365,13 +365,15 @@ class BaseTest(object):
 			cat = Feature(\
 				Concatenate, needs = [uppercase,lowercase], store = False)
 			
-			uppercase._registry = {
-				Database.__name__ : db1
-			}
-			
-			lowercase._registry = {
-				Database.__name__ : db2
-			}
+			register(uppercase,Database,db1)
+			register(lowercase,Database,db2)
+#			uppercase._registry = {
+#				Database.__name__ : db1
+#			}
+#			
+#			lowercase._registry = {
+#				Database.__name__ : db2
+#			}
 		
 		keyname = 'cased'
 		_id = Split.process(stream = keyname)
@@ -392,28 +394,24 @@ class BaseTest(object):
 		db1 = InMemoryDatabase()
 		db2 = InMemoryDatabase()
 		
+		@register(Database,db1)
 		class A(BaseModel):
 			stream = Feature(TextStream, store = True)
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			_registry = {
-				Database.__name__ : db1
-			}
 		
+		@register(Database,db2)
 		class B(BaseModel):
 			stream = Feature(TextStream, store = True)
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			_registry = {
-				Database.__name__ : db2
-			}
 		
 		_id1 = A.process(stream = 'mary')
 		_id2 = B.process(stream = 'humpty')
+		self.assertEqual(1,len(list(db1.iter_ids())))
+		self.assertEqual(1,len(list(db2.iter_ids())))
 		doc_a = A(_id1)
 		doc_b = B(_id2)
 		self.assertEqual(data_source['mary'].upper(),doc_a.uppercase.read())
@@ -423,26 +421,20 @@ class BaseTest(object):
 		db1 = InMemoryDatabase()
 		db2 = InMemoryDatabase()
 		
+		@register(Database,db1)
 		class A(BaseModel):
 			stream = Feature(TextStream, store = True)
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			_registry = {
-				Database.__name__ : db1
-			}
 		
+		@register(Database,db2)
 		class B(BaseModel):
 			stream = Feature(TextStream, store = True)
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = False)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			_registry = {
-				Database.__name__ : db2
-			}
-		
+
 		_id1 = A.process(stream = 'mary')
 		_id2 = B.process(stream = 'humpty')
 		self.assertEqual(1,len(list(db1.iter_ids())))
@@ -457,15 +449,8 @@ class BaseTest(object):
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = True)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			uppercase._registry = {
-				Database.__name__ : db1
-			}
-			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			lowercase._registry = {
-				Database.__name__ : db2
-			}
+			register(uppercase,Database,db1)
+			register(lowercase,Database,db2)
 				
 		_id = A.process(stream = 'mary')
 		doc = A(_id)
@@ -481,15 +466,8 @@ class BaseTest(object):
 			uppercase = Feature(ToUpper, needs = stream, store = True)
 			lowercase = Feature(ToLower, needs = stream, store = True)
 			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			uppercase._registry = {
-				Database.__name__ : db1
-			}
-			
-			#KLUDGE: This is a shit way to do this.  How about a decorator?
-			lowercase._registry = {
-				Database.__name__ : db2
-			}
+			register(uppercase,Database,db1)
+			register(lowercase,Database,db2)
 				
 		_id = A.process(stream = 'mary')
 		_ids1 = set(db1.iter_ids())

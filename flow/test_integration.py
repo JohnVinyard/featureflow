@@ -411,6 +411,41 @@ class BaseTest(object):
 		self.assertEqual(data_source['mary'].upper(),doc_a.uppercase.read())
 		self.assertEqual(data_source['humpty'].upper(),doc_b.uppercase.read())
 	
+	def test_can_override_database_at_different_levels_of_granularity(self):
+		db1 = InMemoryDatabase()
+		db2 = InMemoryDatabase()
+		
+		@register(Database,db1)
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+			
+			register(lowercase,Database,db2)
+		
+		_id = A.process(stream = 'cased')
+		doc = A(_id)
+		self.assertEqual(1,len(list(db1.iter_ids())))
+		self.assertEqual(1,len(list(db2.iter_ids())))
+		self.assertEqual(data_source['cased'].upper(),doc.uppercase.read())
+		self.assertEqual(data_source['cased'].lower(),doc.lowercase.read())
+	
+	def test_can_register_multiple_dependencies_on_base_model_derived_class(self):
+		db1 = InMemoryDatabase()
+		
+		@register(Database,db1)
+		@register(IdProvider,IntegerIdProvider)
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+		
+		_id = A.process(stream = 'cased')
+		doc = A(_id)
+		self.assertEqual('1',list(db1.iter_ids())[0])
+		self.assertEqual(data_source['cased'].upper(),doc.uppercase.read())
+		self.assertEqual(data_source['cased'].lower(),doc.lowercase.read())
+	
 	def test_can_write_different_documents_to_different_data_stores(self):
 		db1 = InMemoryDatabase()
 		db2 = InMemoryDatabase()

@@ -70,7 +70,8 @@ class Feature(object):
         return f
     
     def set_registry(self,registry):
-        self._registry = registry
+        if not hasattr(self,'_registry'):
+            self._registry = registry
 
     def add_dependency(self,feature):
         self.needs.append(feature)

@@ -20,6 +20,16 @@ class UuidProvider(IdProvider):
     def new_id(self):
         return uuid4().hex
 
+class IntegerIdProvider(IdProvider):
+    
+    def __init__(self):
+        super(IntegerIdProvider,self).__init__()
+        self._id = 1
+    
+    def new_id(self):
+        self._id += 1
+        return self._id - 1
+
 class KeyBuilder(object):
     '''
     Marker class for an algorithm to build keys

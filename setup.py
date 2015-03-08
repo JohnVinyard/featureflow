@@ -17,5 +17,5 @@ setup(
       author_email = 'john.vinyard@gmail.com',
       long_description = read('README.md'),
       packages = ['flow'],
-      install_requires = ['nose','unittest2']
+      install_requires = ['nose','unittest2','requests']
 )

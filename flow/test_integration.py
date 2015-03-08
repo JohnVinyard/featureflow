@@ -4,7 +4,7 @@ import random
 
 from extractor import NotEnoughData,Aggregator
 from model import BaseModel
-from feature import Feature,JSONFeature
+from feature import Feature,JSONFeature,CompressedFeature
 from dependency_injection import Registry,register
 from data import *
 from util import chunked,TempDir
@@ -13,7 +13,8 @@ data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
 	'humpty' : 'humpty dumpty sat on a wall humpty dumpty had a great fall',
 	'numbers' : range(10),
-	'cased' : 'This is a test.'
+	'cased' : 'This is a test.',
+	'lorem' : 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum'
 }
 
 class TextStream(Node):
@@ -383,6 +384,37 @@ class BaseTest(object):
 		
 		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
 	
+	def test_can_inherit(self):
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = False)
+		
+		class B(A):
+			lowercase = Feature(ToLower, needs = A.stream, store = False)
+		
+		_id = B.process(stream = 'cased')
+		doc = B(_id)
+		self.assertEqual(data_source['cased'].upper(),doc.uppercase.read())
+		self.assertEqual(data_source['cased'].lower(),doc.lowercase.read())
+	
+	
+	def test_can_change_key_builder_for_single_class(self):
+		
+		@register(IdProvider,IntegerIdProvider)
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+		
+		class B(BaseModel):
+			stream = Feature(TextStream, store = True)
+			uppercase = Feature(ToUpper, needs = stream, store = True)
+			lowercase = Feature(ToLower, needs = stream, store = True)
+		
+		_id1 = A.process(stream = 'cased')
+		self.assertEqual(1,_id1)
+		_id2 = B.process(stream = 'cased')
+		self.assertEqual(32,len(_id2))
 	
 	def test_can_read_different_documents_from_different_data_stores(self):
 		db1 = InMemoryDatabase()
@@ -504,7 +536,21 @@ class BaseTest(object):
 		
 		self.assertTrue(_id in _ids1)
 		self.assertTrue(_id in _ids2)
-
+	
+	def test_can_use_bz2_compression_encoder_and_decoder(self):
+		class A(BaseModel):
+			stream = Feature(TextStream, store = True)
+			lowercase = CompressedFeature(ToLower, needs = stream, store = True)
+		
+		_id = A.process(stream = 'lorem')
+		db = Registry.get_instance(Database)
+		key_builder = Registry.get_instance(KeyBuilder)
+		stream = db.read_stream(key_builder.build(_id,'lowercase'))
+		compressed = stream.read()
+		self.assertTrue(len(compressed) < len(data_source['lorem']))
+		doc = A(_id)
+		self.assertEqual(data_source['lorem'].lower(),''.join(doc.lowercase))
+		
 class InMemoryTest(BaseTest,unittest2.TestCase):
 
 	def setUp(self):

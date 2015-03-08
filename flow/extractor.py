@@ -1,7 +1,7 @@
 from itertools import izip_longest
 import contextlib
 import inspect
-
+ 
 class Node(object):
 
     def __init__(self,needs = None):
@@ -112,7 +112,10 @@ class Node(object):
             yield None
 
 class Aggregator(object):
-    
+    '''
+    A mixin for Node-derived classes that addresses the case when the processing
+    node cannot do its computation until all input has been received
+    '''
     def __init__(self,needs = None):
         super(Aggregator,self).__init__(needs = needs)
     

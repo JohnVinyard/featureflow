@@ -34,6 +34,7 @@ class Registry(object):
 
 Registry.instance = Registry()
 
+# TODO: Really hate the magic strings sprinkled everywhere
 def dependency(cls):
     
     def x(fn):
@@ -64,6 +65,9 @@ def _register(x,for_cls,impl):
     x._registry._register(for_cls,impl)
 
 def register(*args):
+    # TODO: Make this statement more semantically meaningful.  If there are two
+    # arguments, that means this is being used as a class decorator, otherwise
+    # it's being called directly.
     if len(args) == 2:
         def x(cls):
             _register(cls,*args)

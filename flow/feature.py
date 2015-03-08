@@ -1,5 +1,5 @@
-from encoder import IdentityEncoder,JSONEncoder,TextEncoder
-from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode
+from encoder import IdentityEncoder,JSONEncoder,TextEncoder,BZ2Encoder
+from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode,BZ2Decoder
 from dependency_injection import dependency
 from data import DataWriter,StringIODataWriter,Database,KeyBuilder
 
@@ -175,6 +175,25 @@ class Feature(object):
         graph['{key}_writer'.format(**locals())] = dw
         return e
 
+class CompressedFeature(Feature):
+    
+    def __init__(\
+            self,
+            extractor,
+            needs = None,
+            store = False,
+            key = None,
+            **extractor_args):
+        
+        super(CompressedFeature,self).__init__(\
+            extractor,
+            needs = needs,
+            store = store,
+            encoder = BZ2Encoder,
+            decoder = BZ2Decoder(),
+            key = key,
+            **extractor_args)
+
 class JSONFeature(Feature):
     
     def __init__(\
@@ -212,4 +231,6 @@ class TextFeature(Feature):
             decoder = GreedyDecoder(),
             key = key,
             **extractor_args)
+
+
 

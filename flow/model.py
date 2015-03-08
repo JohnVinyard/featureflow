@@ -67,10 +67,9 @@ class BaseModel(object):
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
             try:
-                reader = extractor._reader
+                kwargs[k] = extractor._reader
             except AttributeError:
-                reader = f.reader(self._id,k)
-            kwargs[k] = reader
+                kwargs[k] = f.reader(self._id,k)
           
         graph.process(**kwargs)
         stream = data_writer._stream

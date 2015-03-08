@@ -4,6 +4,7 @@ decoders should be a callables that take a file-like object and return...anythin
 import simplejson
 from util import chunked
 from extractor import Node
+import bz2
 
 class Decoder(object):
 	'''
@@ -44,6 +45,20 @@ class JSONDecoder(GreedyDecoder):
 
 	def __iter__(self,flo):
 		yield self(flo)
+
+class BZ2Decoder(Decoder):
+	
+	def __init__(self):
+		super(BZ2Decoder,self).__init__()
+	
+	def __call__(self,flo):
+		return self.__iter__(flo)
+
+	def __iter__(self,flo):
+		decompressor = bz2.BZ2Decompressor()
+		for chunk in chunked(flo):
+			yield decompressor.decompress(chunk)
+		
 
 class DecoderNode(Node):
 

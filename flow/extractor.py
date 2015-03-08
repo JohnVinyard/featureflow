@@ -92,6 +92,7 @@ class Node(object):
         self._finalize(pusher)
         if pusher in self._needs:
             self._finalized_dependencies.add(id(pusher))
+        if pusher: return
         for l in self._listeners:
             l.__finalize(self)
 

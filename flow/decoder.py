@@ -47,7 +47,9 @@ class JSONDecoder(GreedyDecoder):
 		yield self(flo)
 
 class BZ2Decoder(Decoder):
-	
+	'''
+	A decoder that decompresses data using the bz2 compression algorithm
+	'''
 	def __init__(self):
 		super(BZ2Decoder,self).__init__()
 	

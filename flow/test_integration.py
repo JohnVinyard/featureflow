@@ -32,6 +32,24 @@ class TextStream(Node):
 		for chunk in chunked(flo,chunksize = self._chunksize):
 			yield chunk
 
+class Dam(Aggregator,Node):
+	'''
+	Gather input until all has been received, and then dole it out in small
+	chunks
+	'''
+	def __init__(self, chunksize = 3, needs = None):
+		super(Dam,self).__init__(needs = needs)
+		self._chunksize = chunksize
+		self._cache = ''
+	
+	def _enqueue(self,data,pusher):
+		self._cache += data
+	
+	def _process(self,data):
+		flo = StringIO(data)
+		for chunk in chunked(flo, chunksize = self._chunksize):
+			yield chunk
+
 class ToUpper(Node):
 
 	def __init__(self, needs = None):
@@ -211,7 +229,18 @@ class MultipleRoots(BaseModel):
 	stream2 = Feature(TextStream, chunksize = 3, store = False)
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
 
-class BaseTest(object):
+class BaseTest(object):	
+	
+	def test_can_have_multiple_producer_like_nodes(self):
+		class Document(BaseModel):
+			stream = Feature(TextStream, store = True)
+			dam = Feature(Dam, needs = stream, store = False)
+			words  = Feature(Tokenizer, needs = dam, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = False)
+		
+		_id = Document.process(stream = 'humpty')
+		doc = Document(_id)
+		self.assertEqual(2,doc.count['a'])
 	
 	def test_can_aggregate_word_counts_from_multiple_inputs(self):
 		class Contrived(BaseModel):
@@ -265,6 +294,7 @@ class BaseTest(object):
 		doc = DocumentWordCount(_id3)
 		self.assertEqual(3,doc.total_count['a'])
 	
+
 	def test_document_with_multiple_roots(self):
 		_id = MultipleRoots.process(stream1 = 'mary', stream2 = 'humpty')
 		doc = MultipleRoots(_id)

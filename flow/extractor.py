@@ -1,6 +1,5 @@
 from itertools import izip_longest
 import contextlib
-import inspect
  
 class Node(object):
 
@@ -45,6 +44,10 @@ class Node(object):
     @property
     def is_root(self):
         return not self._needs
+    
+    @property
+    def is_leaf(self):
+        return not self._listeners
 
     def add_listener(self,listener):
         self._listeners.append(listener)
@@ -124,8 +127,15 @@ class Aggregator(object):
         if not self._finalized:
             raise NotEnoughData()
         return super(Aggregator,self)._dequeue()
+        
 
-class NotEnoughData(Exception): pass
+class NotEnoughData(Exception):
+    '''
+    Exception thrown by extractors when they do not yet have enough data to 
+    execute the processing step
+    ''' 
+    pass
+
 
 class Graph(dict):
 
@@ -134,6 +144,9 @@ class Graph(dict):
 
     def roots(self):
         return dict((k,v) for k,v in self.iteritems() if v.is_root)
+    
+    def leaves(self):
+        return dict((k,v) for k,v in self.iteritems() if v.is_leaf)
 
     def process(self,**kwargs):
         # get all root nodes (those that produce data, rather than consuming 
@@ -142,8 +155,8 @@ class Graph(dict):
         
         if set(kwargs.keys()) ^ set(roots.keys()):
             raise KeyError(\
-               'the keys {kw} were provided to the process() method, but the' \
-               + 'keys for the root extractors were {r}'\
+               ('the keys {kw} were provided to the process() method, but the' \
+               + ' keys for the root extractors were {r}')\
                .format(kw = kwargs.keys(),r = roots.keys()))
                     
         # get a generator for each root node.
@@ -151,12 +164,25 @@ class Graph(dict):
         with contextlib.nested(*self.values()) as _:
             [x for x in izip_longest(*generators)]
 
-    @staticmethod
-    def from_locals():
-        '''
-        Build a graph from all Node instances in the caller's
-        context
-        '''
-        l = inspect.stack()[1][0].f_locals
-        return Graph(\
-             **dict((k,v) for k,v in l.iteritems() if isinstance(v,Node)))
+class CompoundNode(Node):
+    
+    def __init__(self, graph, needs = None):
+        super(CompoundNode,self).__init__()
+        self._graph = graph
+    
+    @property
+    def root(self):
+        return self._graph.roots().itervalues().next()
+    
+    @property
+    def leaf(self):
+        return self._graph.leaves().itervalues().next()
+    
+    def _enqueue(self,data,pusher):
+        self.leaf._enqueue(data,pusher)
+    
+    def _dequeue(self):
+        return self.leaf._dequeue()
+
+    def _process(self,data):
+        return self.root._process(data)

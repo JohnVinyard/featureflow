@@ -37,3 +37,6 @@ class StringWithTotalLength(str):
         o = str.__new__(cls,s)
         o.total_length = int(total_length)
         return o
+    
+    def __radd__(self,other):
+        return StringWithTotalLength(self + other, self.total_length)

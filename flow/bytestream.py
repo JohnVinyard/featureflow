@@ -25,10 +25,10 @@ class ByteStream(Node):
     
     def _process(self,data):
         try:
-            for chunk in self._handle_http_request(data):
+            for chunk in self._handle_http_request(data.uri):
                 yield chunk
         except AttributeError:
-            for chunk in self._handle_local_file(data):
+            for chunk in self._handle_local_file(data.uri):
                 yield chunk
 
 class StringWithTotalLength(str):

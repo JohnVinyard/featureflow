@@ -126,7 +126,7 @@ class Aggregator(object):
     def _dequeue(self):
         if not self._finalized:
             raise NotEnoughData()
-        return super(Aggregator,self)._dequeue()
+        return super(Aggregator,self)._dequeue() 
         
 
 class NotEnoughData(Exception):
@@ -162,27 +162,6 @@ class Graph(dict):
         # get a generator for each root node.
         generators = [roots[k].process(v) for k,v in kwargs.iteritems()]
         with contextlib.nested(*self.values()) as _:
-            [x for x in izip_longest(*generators)]
+            [x for x in izip_longest(*generators)] 
 
-class CompoundNode(Node):
-    
-    def __init__(self, graph, needs = None):
-        super(CompoundNode,self).__init__()
-        self._graph = graph
-    
-    @property
-    def root(self):
-        return self._graph.roots().itervalues().next()
-    
-    @property
-    def leaf(self):
-        return self._graph.leaves().itervalues().next()
-    
-    def _enqueue(self,data,pusher):
-        self.leaf._enqueue(data,pusher)
-    
-    def _dequeue(self):
-        return self.leaf._dequeue()
 
-    def _process(self,data):
-        return self.root._process(data)

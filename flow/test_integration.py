@@ -2,7 +2,7 @@ import unittest2
 from collections import defaultdict
 import random
 
-from extractor import NotEnoughData,Aggregator,CompoundNode,Graph
+from extractor import NotEnoughData,Aggregator,Graph
 from model import BaseModel
 from feature import Feature,JSONFeature,CompressedFeature
 from dependency_injection import Registry,register
@@ -57,14 +57,6 @@ class ToUpper(Node):
 
 	def _process(self,data):
 		yield data.upper()
-
-class UpperText(CompoundNode):
-	
-	def __init__(self, chunksize = 3, needs = None):
-		ts = TextStream(chunksize = chunksize, needs = None)
-		tu = ToUpper(needs = ts)
-		graph = Graph(ts = ts, tu = tu	)
-		super(UpperText,self).__init__(graph)
 
 class ToLower(Node):
 
@@ -238,14 +230,6 @@ class MultipleRoots(BaseModel):
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
 
 class BaseTest(object):
-	
-	def test_can_use_compound_extractor(self):
-		class A(BaseModel):
-			upper = Feature(UpperText, store = True)
-		
-		_id = A.process(upper = 'humpty')
-		doc = A(_id)
-		self.assertEqual(data_source['humpty'],doc.upper.read())
 	
 	def test_can_have_multiple_producer_like_nodes(self):
 		class Document(BaseModel):

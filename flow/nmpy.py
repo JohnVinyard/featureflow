@@ -21,12 +21,6 @@ class NumpyMetaData(object):
 	@property
 	def totalsize(self):
 		return self.itemsize * self.size
-	
-	def __getitem__(self,index):
-		if not isinstance(index,slice):
-			raise ValueError('index must be a slice instance')
-		
-		return NumpyMetaData(self.dtype,self.shape[index])
 
 	def __repr__(self):
 		return repr((str(np.dtype(self.dtype)),self.shape))
@@ -61,7 +55,6 @@ class NumpyEncoder(Node):
 		
 		yield data.tostring()
 
-
 def _np_from_buffer(b,shape,dtype):
 	f = np.frombuffer if len(b) else np.fromstring
 	return f(b,dtype = dtype).reshape(shape)
@@ -93,7 +86,7 @@ class StreamingNumpyDecoder(Node):
 
 	def __iter__(self,flo):
 		metadata,_ = NumpyMetaData.unpack(flo)
-		example_size = metadata[1:].totalsize
+		example_size = metadata.totalsize
 		chunk_size = int(example_size * self.n_examples)
 		count = 0
 		
@@ -101,14 +94,14 @@ class StreamingNumpyDecoder(Node):
 			n_examples = len(chunk) // example_size
 			yield _np_from_buffer(\
 				chunk,
-				(n_examples,) + metadata[1:].shape,
+				(n_examples,) + metadata.shape,
 				metadata.dtype)
 			count += 1
 		
 		if count == 0:
 			yield _np_from_buffer(\
 				buffer(''),
-				(0,) + metadata[1:].shape,
+				(0,) + metadata.shape,
 				metadata.dtype)
 		
 class NumpyFeature(Feature):

@@ -29,6 +29,11 @@ class BaseNumpyTest(object):
 		self._register_database()
 		Registry.register(DataWriter,DataWriter)
 	
+	def _check_array(self,arr,shape,dtype):
+		self.assertTrue(isinstance(arr,np.ndarray))
+		self.assertEqual(shape,arr.shape)
+		self.assertEqual(dtype,arr.dtype)
+	
 	def _register_database(self):
 		raise NotImplemented()
 	
@@ -56,9 +61,7 @@ class GreedyNumpyTest(BaseNumpyTest,unittest2.TestCase):
 		_id = Doc.process(feat = np.zeros(shape,dtype = dtype))
 		doc = Doc(_id)
 		arr = doc.feat
-		self.assertTrue(isinstance(arr,np.ndarray))
-		self.assertEqual(np.product(shape),arr.size)
-		self.assertEqual(dtype,arr.dtype)
+		self._check_array(arr, shape, dtype)
 
 class GreedyNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 	
@@ -76,9 +79,7 @@ class GreedyNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 		_id = Doc.process(feat = np.zeros(shape,dtype = dtype))
 		doc = Doc(_id)
 		arr = doc.feat
-		self.assertTrue(isinstance(arr,np.ndarray))
-		self.assertEqual(np.product(shape),arr.size)
-		self.assertEqual(dtype,arr.dtype)
+		self._check_array(arr, shape, dtype)
 
 
 class StreamingNumpyTest(BaseNumpyTest,unittest2.TestCase):
@@ -97,9 +98,7 @@ class StreamingNumpyTest(BaseNumpyTest,unittest2.TestCase):
 		doc = Doc(_id)
 		iterator = doc.feat
 		arr = np.concatenate(list(iterator))
-		self.assertTrue(isinstance(arr,np.ndarray))
-		self.assertEqual(np.product(shape),arr.size)
-		self.assertEqual(dtype,arr.dtype)
+		self._check_array(arr, shape, dtype)
 
 class StreamingNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 	
@@ -121,6 +120,4 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 		doc = Doc(_id)
 		iterator = doc.feat
 		arr = np.concatenate(list(iterator))
-		self.assertTrue(isinstance(arr,np.ndarray))
-		self.assertEqual(np.product(shape),arr.size)
-		self.assertEqual(dtype,arr.dtype)
+		self._check_array(arr, shape, dtype)

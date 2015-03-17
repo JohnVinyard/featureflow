@@ -1,5 +1,5 @@
 import simplejson
-from extractor import Node,NotEnoughData
+from extractor import Node,Aggregator
 import bz2
 
 class IdentityEncoder(Node):
@@ -19,18 +19,12 @@ class TextEncoder(IdentityEncoder):
     def __init__(self,needs = None):
         super(TextEncoder,self).__init__(needs = needs)
 
-class JSONEncoder(Node):
+class JSONEncoder(Aggregator,Node):
     
     content_type = 'application/json'
     
     def __init__(self, needs = None):
         super(JSONEncoder,self).__init__(needs = needs)
-
-    def dequeue(self):
-        if not self._finalized:
-            raise NotEnoughData()
-
-        return super(JSONEncoder,self)._dequeue()
         
     def _process(self,data):
         yield simplejson.dumps(data)

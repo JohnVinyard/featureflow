@@ -202,13 +202,14 @@ class JSONFeature(Feature):
             needs = None,
             store = False,
             key = None,
+            encoder = JSONEncoder,
             **extractor_args):
         
         super(JSONFeature,self).__init__(\
             extractor,
             needs = needs,
             store = store,
-            encoder = JSONEncoder,
+            encoder = encoder,
             decoder = JSONDecoder(),
             key = key,
             **extractor_args)

@@ -1,7 +1,10 @@
 from extractor import Node
+from decoder import Decoder
+from feature import Feature
 from util import chunked
 from requests import Session
 import os
+import struct
      
 class ByteStream(Node):
     
@@ -40,3 +43,53 @@ class StringWithTotalLength(str):
     
     def __radd__(self,other):
         return StringWithTotalLength(self + other, self.total_length)
+
+class StringWithTotalLengthEncoder(Node):
+    
+    content_type = 'application/octet-stream'
+    
+    def __init__(self, needs = None):
+        super(StringWithTotalLengthEncoder,self).__init__(needs = needs)
+        self._metadata_written = False
+    
+    def _process(self, data):
+        if not self._metadata_written:
+            yield struct.pack('I',data.total_length)
+            self._metadata_written
+        yield data
+
+class StringWithTotalLengthDecoder(Decoder):
+    
+    def __init__(self, chunksize = 4096):
+        super(StringWithTotalLengthDecoder,self).__init__()
+        self._chunksize = chunksize
+        self._total_length = None
+    
+    def __call__(self,flo):
+        return self.__iter__()
+    
+    def __iter__(self,flo):
+        self._total_length = struct.unpack('I',flo.read(4))[0]
+        for chunk in chunked(flo,self._chunksize):
+            yield StringWithTotalLength(chunk, self._total_length)
+
+class ByteStreamFeature(Feature):
+    
+    def __init__(\
+         self,
+         extractor,
+         needs = None,
+        store = False,
+        key = None,
+        **extractor_args):
+        
+        super(ByteStreamFeature,self).__init__(\
+          extractor,
+          needs = needs,
+          store = store,
+          encoder = StringWithTotalLengthEncoder,
+          decoder = StringWithTotalLengthDecoder(\
+             chunksize = extractor_args['chunksize']),
+          key = key,
+          **extractor_args)
+                

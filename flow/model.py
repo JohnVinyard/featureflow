@@ -102,7 +102,7 @@ class BaseModel(object):
      
     @classmethod
     def process(cls,**kwargs):
-        _id = cls.id_provider().new_id()
+        _id = cls.id_provider().new_id(**kwargs)
         graph = cls._build_extractor(_id)
         graph.process(**kwargs)
         return _id

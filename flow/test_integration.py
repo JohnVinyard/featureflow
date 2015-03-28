@@ -231,6 +231,20 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 	
+	def test_can_explicitly_specify_identifier(self):
+		
+		@register(IdProvider,UserSpecifiedIdProvider(key = '_id'))
+		class Document(BaseModel):
+			stream = Feature(TextStream, store = True)
+			dam = Feature(Dam, needs = stream, store = False)
+			words  = Feature(Tokenizer, needs = dam, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = False)
+		
+		_id = Document.process(stream = 'humpty', _id = 'blah')
+		self.assertEqual('blah',_id)
+		doc = Document(_id)
+		self.assertEqual(2,doc.count['a'])
+	
 	def test_can_have_multiple_producer_like_nodes(self):
 		class Document(BaseModel):
 			stream = Feature(TextStream, store = True)

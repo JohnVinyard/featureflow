@@ -152,16 +152,20 @@ class Graph(dict):
         # get all root nodes (those that produce data, rather than consuming 
         # it)
         roots = self.roots()
-        
-        if set(kwargs.keys()) ^ set(roots.keys()):
+
+        # ensure that kwargs contains *at least* the arguments needed for the
+        # root nodes
+        intersection = set(kwargs.keys()) & set(roots.keys())
+        if len(intersection) < len(roots):
             raise KeyError(\
                ('the keys {kw} were provided to the process() method, but the' \
                + ' keys for the root extractors were {r}')\
                .format(kw = kwargs.keys(),r = roots.keys()))
+        
+        graph_args = dict((k,kwargs[k]) for k in intersection)
                     
         # get a generator for each root node.
-        generators = [roots[k].process(v) for k,v in kwargs.iteritems()]
+        generators = [roots[k].process(v) for k,v in graph_args.iteritems()]
         with contextlib.nested(*self.values()) as _:
             [x for x in izip_longest(*generators)] 
-
 

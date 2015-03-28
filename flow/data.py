@@ -17,7 +17,7 @@ class UuidProvider(IdProvider):
     def __init__(self):
         super(UuidProvider,self).__init__()
 
-    def new_id(self):
+    def new_id(self, **kwargs):
         return uuid4().hex
 
 class IntegerIdProvider(IdProvider):
@@ -26,9 +26,18 @@ class IntegerIdProvider(IdProvider):
         super(IntegerIdProvider,self).__init__()
         self._id = 1
     
-    def new_id(self):
+    def new_id(self, **kwargs):
         self._id += 1
         return self._id - 1
+
+class UserSpecifiedIdProvider(IdProvider):
+    
+    def __init__(self, key = None):
+        super(UserSpecifiedIdProvider,self).__init__()
+        self._key = key
+    
+    def new_id(self, **kwargs):
+        return kwargs[self._key]
 
 class KeyBuilder(object):
     '''

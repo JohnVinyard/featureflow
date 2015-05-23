@@ -8,4 +8,7 @@ class DatabaseIterator(Node):
     
     def _process(self, data):
         for _id in data.iter_ids():
-            yield self._func(_id)
+            try:
+                yield self._func(_id)
+            except:
+                continue

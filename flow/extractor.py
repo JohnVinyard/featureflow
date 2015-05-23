@@ -42,7 +42,7 @@ class Node(object):
         return len(self._needs)
 
     @property
-    def is_root(self):
+    def is_root(self):   
         return not self._needs
     
     @property

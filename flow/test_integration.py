@@ -231,6 +231,27 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 	
+	def test_can_incrementally_build_document(self):
+		class D1(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+		
+		_id = D1.process(stream = 'humpty')
+		
+		class D2(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = True)
+		
+		# count should be computed and stored lazily
+		doc = D2(_id)
+		self.assertEqual(2, doc.count['a'])
+		del doc
+		
+		# count should be retrieved
+		doc = D2(_id)
+		self.assertEqual(2, doc.count['a'])
+	
 	def test_can_explicitly_specify_identifier(self):
 		
 		@register(IdProvider,UserSpecifiedIdProvider(key = '_id'))

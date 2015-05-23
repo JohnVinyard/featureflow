@@ -1,6 +1,7 @@
 import simplejson
 from extractor import Node,Aggregator
 import bz2
+from cPickle import dumps
 
 class IdentityEncoder(Node):
     
@@ -28,6 +29,16 @@ class JSONEncoder(Aggregator,Node):
         
     def _process(self,data):
         yield simplejson.dumps(data)
+
+class PickleEncoder(Aggregator,Node):
+    
+    content_type = 'application/octet-stream'
+    
+    def __init__(self, needs = None):
+        super(PickleEncoder, self).__init__(needs = needs)
+    
+    def _process(self, data):
+        yield dumps(data)
 
 class BZ2Encoder(Node):
     

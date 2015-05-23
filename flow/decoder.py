@@ -5,6 +5,7 @@ import simplejson
 from util import chunked
 from extractor import Node
 import bz2
+from cPickle import loads
 
 class Decoder(object):
 	'''
@@ -44,6 +45,17 @@ class JSONDecoder(GreedyDecoder):
 		return simplejson.loads(super(JSONDecoder,self).__call__(flo))
 
 	def __iter__(self,flo):
+		yield self(flo)
+
+class PickleDecoder(GreedyDecoder):
+	
+	def __init__(self):
+		super(PickleDecoder, self).__init__()
+	
+	def __call__(self, flo):
+		return loads(flo.read())
+	
+	def __iter__(self, flo):
 		yield self(flo)
 
 class BZ2Decoder(Decoder):

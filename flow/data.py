@@ -82,6 +82,15 @@ class Database(object):
     def iter_ids(self):
         raise NotImplemented()
 
+class IOWithLength(StringIO):
+    
+    def __init__(self, content):
+        StringIO.__init__(self, content)
+        self._length = len(content)
+    
+    def __len__(self):
+        return self._length 
+
 class InMemoryDatabase(Database):
 
     def __init__(self,name = None):
@@ -105,7 +114,7 @@ class InMemoryDatabase(Database):
         return sio
 
     def read_stream(self,key):
-        return StringIO(self._dict[key])
+        return IOWithLength(self._dict[key])
 
     def iter_ids(self):
         seen = set()
@@ -129,7 +138,10 @@ class FileSystemDatabase(Database):
         return open(os.path.join(self._path,key),'wb')
     
     def read_stream(self,key):
-        return open(os.path.join(self._path,key),'rb')
+        try:
+            return open(os.path.join(self._path,key),'rb')
+        except IOError:
+            raise KeyError(key)
     
     def iter_ids(self):
         seen = set()

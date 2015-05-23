@@ -1,5 +1,5 @@
-from encoder import IdentityEncoder,JSONEncoder,TextEncoder,BZ2Encoder
-from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode,BZ2Decoder
+from encoder import IdentityEncoder,JSONEncoder,TextEncoder,BZ2Encoder,PickleEncoder
+from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode,BZ2Decoder,PickleDecoder
 from dependency_injection import dependency
 from data import DataWriter,StringIODataWriter,Database,KeyBuilder
 
@@ -113,7 +113,7 @@ class Feature(object):
 
         return all([n._can_compute() for n in self.needs])
 
-    def _partial(self,_id,features = None):
+    def _partial(self, _id, features = None):
         '''
         TODO: _partial is a shit name for this, kind of.  I'm building a graph
         such that I can only do work necessary to compute self, and no more
@@ -151,15 +151,15 @@ class Feature(object):
             needs.append(e)
         return needs
 
-    def _build_extractor(self,_id,graph):
+    def _build_extractor(self, _id, graph):
         try:
             return graph[self.key]
         except KeyError:
             pass
         
-        needs = self._depends_on(_id,graph)
+        needs = self._depends_on(_id, graph)
         e = self.extractor(needs = needs,**self.extractor_args)
-        if isinstance(e,DecoderNode):
+        if isinstance(e, DecoderNode):
             reader = self.reader(_id,self.key)
             setattr(e,'_reader',reader)
             
@@ -193,6 +193,25 @@ class CompressedFeature(Feature):
             decoder = BZ2Decoder(),
             key = key,
             **extractor_args)
+
+class PickleFeature(Feature):
+    
+    def __init__(\
+         self,
+         extractor,
+         needs = None,
+         store = False,
+         key = None,
+         **extractor_args):
+        
+        super(PickleFeature, self).__init__(\
+             extractor,
+             needs = needs,
+             store = store,
+             encoder = PickleEncoder,
+             decoder = PickleDecoder(),
+             key = key,
+             **extractor_args)
 
 class JSONFeature(Feature):
     

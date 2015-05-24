@@ -53,16 +53,19 @@ class BaseModel(object):
 
         feature = getattr(self.__class__,key)
 
-        if f.store:     
-            raw = f.reader(self._id, key)
-            decoded = feature.decoder(raw)
-            setattr(self,key,decoded)
-            return decoded
+        if f.store:
+            try:
+                raw = f.reader(self._id, key)
+                decoded = feature.decoder(raw)
+                setattr(self,key,decoded)
+                return decoded
+            except KeyError:
+                raise Exception('In this situation, I should compute and store the new feature')
 
         if not f._can_compute():
             raise AttributeError('%s cannot be computed' % f.key)
 
-        graph,data_writer = self._build_partial(self._id,f)
+        graph,data_writer = self._build_partial(self._id, f)
         
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
@@ -86,15 +89,15 @@ class BaseModel(object):
         return g
 
     @classmethod
-    def _build_partial(cls,_id,feature):
+    def _build_partial(cls, _id, feature):
         features = feature._partial(_id)
         g = Graph()
         for feat in features.itervalues():
-            e = feat._build_extractor(_id,g)
+            e = feat._build_extractor(_id, g)
             if feat.key == feature.key:
                 data_writer = e.find_listener(\
-                    lambda x : isinstance(x,StringIODataWriter))
-        return g,data_writer
+                    lambda x : isinstance(x, StringIODataWriter))
+        return g, data_writer
     
     @classmethod
     @dependency(IdProvider)

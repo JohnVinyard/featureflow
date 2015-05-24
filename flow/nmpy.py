@@ -6,9 +6,14 @@ import struct
 
 class NumpyMetaData(object):
 
-	def __init__(self,dtype = None,shape = None):
+	def __init__(self, dtype = None, shape = None):
 		self.dtype = np.uint8 if dtype is None else dtype
 		self.shape = shape or ()
+		
+		try:
+			self.itemsize
+		except:
+			self.dtype = eval(self.dtype)
 	
 	@property
 	def itemsize(self):
@@ -30,6 +35,7 @@ class NumpyMetaData(object):
 
 	def pack(self):
 		s = str(self)
+		print s
 		l = len(s)
 		return struct.pack('B{n}s'.format(n = l),l,s)
 

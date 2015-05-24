@@ -3,7 +3,7 @@ from extractor import Node
 class DatabaseIterator(Node):
     
     def __init__(self, needs = None, func = None):
-        super(DatabaseIterator,self).__init__(needs = needs)
+        super(DatabaseIterator, self).__init__(needs = needs)
         self._func = func
     
     def _process(self, data):

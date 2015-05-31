@@ -175,7 +175,7 @@ class WordCount(Aggregator,Node):
 
 	def _enqueue(self,data,pusher):
 		for word in data:
-			self._cache[word.lower()] += 1
+			self._cache[word.lower()] += 1		
 
 class FeatureAggregator(Node):
 	
@@ -251,6 +251,38 @@ class BaseTest(object):
 		# count should be retrieved
 		doc = D2(_id)
 		self.assertEqual(2, doc.count['a'])
+	
+	def test_can_incrementally_build_document_with_two_new_stored_features(self):
+		class D1(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+		
+		_id = D1.process(stream = 'humpty')
+		
+		class D2(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = True)
+			aggregate = JSONFeature(WordCountAggregator, needs = count, store = True)
+		
+		# count should be computed and stored lazily
+		doc = D2(_id)
+		self.assertEqual(2, doc.count['a'])
+		del doc
+		
+		# count should be retrieved
+		doc = D2(_id)
+		self.assertEqual(2, doc.count['a'])
+		del doc
+		
+		# aggregate should be computed and stored lazily
+		doc = D2(_id)
+		self.assertEqual(2, doc.aggregate['a'])
+		del doc
+		
+		# aggregate should be retrieved
+		doc = D2(_id)
+		self.assertEqual(2, doc.aggregate['a'])
 	
 	def test_can_explicitly_specify_identifier(self):
 		

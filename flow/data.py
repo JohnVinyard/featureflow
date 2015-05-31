@@ -1,6 +1,7 @@
 from StringIO import StringIO
 from uuid import uuid4
 import os
+import glob
 
 from extractor import Node
 from dependency_injection import dependency
@@ -81,6 +82,9 @@ class Database(object):
 
     def iter_ids(self):
         raise NotImplemented()
+    
+    def __contains__(self, key):
+        raise NotImplemented()
 
 class IOWithLength(StringIO):
     
@@ -123,6 +127,9 @@ class InMemoryDatabase(Database):
             if _id in seen: continue
             yield _id
             seen.add(_id)
+    
+    def __contains__(self, key):
+        return key in self._dict
 
 class FileSystemDatabase(Database):
     
@@ -139,7 +146,7 @@ class FileSystemDatabase(Database):
     
     def read_stream(self,key):
         try:
-            return open(os.path.join(self._path,key),'rb')
+            return open(os.path.join(self._path, key),'rb')
         except IOError:
             raise KeyError(key)
     
@@ -150,6 +157,10 @@ class FileSystemDatabase(Database):
             if _id in seen: continue
             yield _id
             seen.add(_id)
+    
+    def __contains__(self, key):
+        path = os.path.join(self._path, key)
+        return bool(glob.glob('{path}*'.format(**locals())))
 
 class DataWriter(Node):
     

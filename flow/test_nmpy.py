@@ -29,8 +29,9 @@ class BaseNumpyTest(object):
 		self._register_database()
 		Registry.register(DataWriter,DataWriter)
 	
-	def _check_array(self, arr, shape,dtype):
-		self.assertTrue(isinstance(arr,np.ndarray))
+	def _check_array(self, arr, shape, dtype, orig):
+		self.assertTrue(isinstance(arr, np.ndarray))
+		self.assertTrue(np.all(arr == orig))
 		self.assertEqual(shape, arr.shape)
 		self.assertEqual(dtype, arr.dtype)
 	
@@ -44,11 +45,12 @@ class BaseNumpyTest(object):
 	
 	def _arrange(self, shape = None, dtype = None):
 		cls = self._build_doc()
-		arr = np.zeros(shape, dtype = dtype)
+		arr = np.recarray(shape, dtype = dtype) \
+			if isinstance(dtype,list) else np.zeros(shape, dtype = dtype)
 		_id = cls.process(feat = arr)
 		doc = cls(_id)
 		recovered = self._restore(doc.feat)
-		self._check_array(recovered, shape, dtype)
+		self._check_array(recovered, shape, dtype, arr)
 	
 	def _register_database(self):
 		raise NotImplemented()
@@ -67,8 +69,8 @@ class BaseNumpyTest(object):
 	
 	def test_can_store_and_retrieve_recarray(self):
 		self._arrange(shape = (25,), dtype = [\
-			('x', np.float32, (10,)),
-			('y', 'a16')])
+			('x', np.uint8, (509,)),
+			('y', 'a32')])
 
 class GreedyNumpyTest(BaseNumpyTest,unittest2.TestCase):
 	

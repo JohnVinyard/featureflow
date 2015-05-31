@@ -35,7 +35,6 @@ class NumpyMetaData(object):
 
 	def pack(self):
 		s = str(self)
-		print s
 		l = len(s)
 		return struct.pack('B{n}s'.format(n = l),l,s)
 
@@ -43,7 +42,7 @@ class NumpyMetaData(object):
 	def unpack(cls,flo):
 		l = struct.unpack('B',flo.read(1))[0]
 		bytes_read = 1 + l
-		return cls(*eval(flo.read(l))),bytes_read
+		return cls(*eval(flo.read(l))), bytes_read
 
 class NumpyEncoder(Node):
 	
@@ -54,16 +53,18 @@ class NumpyEncoder(Node):
 		self.metadata = None
 	
 	def _process(self,data):
+		
 		if not self.metadata:
 			self.metadata = NumpyMetaData(\
 				dtype = data.dtype, shape = data.shape[1:])
 			yield self.metadata.pack()
 		
-		yield data.tostring()
+		encoded = data.tostring()
+		yield encoded
 
-def _np_from_buffer(b,shape,dtype):
+def _np_from_buffer(b, shape, dtype):
 	f = np.frombuffer if len(b) else np.fromstring
-	return f(b,dtype = dtype).reshape(shape)
+	return f(b, dtype = dtype).reshape(shape)
 
 class GreedyNumpyDecoder(Node):
 
@@ -71,10 +72,10 @@ class GreedyNumpyDecoder(Node):
 		super(GreedyNumpyDecoder,self).__init__(needs = needs)
 
 	def __call__(self,flo):
-		metadata,_ = NumpyMetaData.unpack(flo)
+		metadata, bytes_read = NumpyMetaData.unpack(flo)
 		leftovers = flo.read()
 		leftover_bytes = len(leftovers)
-		first_dim = (leftover_bytes / (metadata.size * metadata.itemsize))
+		first_dim = leftover_bytes / metadata.totalsize
 		dim = (first_dim,) + metadata.shape
 		return _np_from_buffer(leftovers,dim,metadata.dtype)
 

@@ -53,26 +53,25 @@ class BaseModel(object):
 
         feature = getattr(self.__class__,key)
 
-        if f.store:
-            try:
-                raw = f.reader(self._id, key)
-                decoded = feature.decoder(raw)
-                setattr(self,key,decoded)
-                return decoded
-            except KeyError:
-                raise Exception('In this situation, I should compute and store the new feature')
-
+        try:
+            raw = f.reader(self._id, key)
+            decoded = feature.decoder(raw)
+            setattr(self,key,decoded)
+            return decoded
+        except KeyError:
+            pass
+        
         if not f._can_compute():
             raise AttributeError('%s cannot be computed' % f.key)
 
-        graph,data_writer = self._build_partial(self._id, f)
+        graph, data_writer = self._build_partial(self._id, f)
         
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
             try:
                 kwargs[k] = extractor._reader
             except AttributeError:
-                kwargs[k] = f.reader(self._id,k)
+                kwargs[k] = f.reader(self._id, k)
           
         graph.process(**kwargs)
         stream = data_writer._stream

@@ -88,13 +88,17 @@ class Feature(object):
     def _data_writer(self,needs = None, _id = None, feature_name = None):
         pass
     
-    def reader(self,_id,key):
+    def reader(self, _id, key):
         return self.database.read_stream(\
-             self.keybuilder.build(_id,key))
+             self.keybuilder.build(_id, key))
 
     @property
     def is_root(self):
-        return not self.needs      
+        return not self.needs
+    
+    def _stored(self, _id):
+        key = self.keybuilder.build(_id, self.key)
+        return key in self.database
     
     @property
     def content_type(self):
@@ -118,36 +122,38 @@ class Feature(object):
         TODO: _partial is a shit name for this, kind of.  I'm building a graph
         such that I can only do work necessary to compute self, and no more
         '''
-        if self.store and features is None:
-            raise Exception('There is no need to build a partial graph for a stored feature')
-
+        
+        root = features is None
+        
+        is_cached = self.store and self._stored(_id)
+        
         nf = self.copy(\
-            extractor = DecoderNode if self.store else self.extractor,
-            store = features is None,
+            extractor = DecoderNode if is_cached else self.extractor,
+            store = root,
             needs = None,
-            data_writer = StringIODataWriter if features is None else None,
+            data_writer = StringIODataWriter if root else None,
             extractor_args = dict(decodifier = self.decoder) \
-                if self.store else self.extractor_args)
+                if is_cached else self.extractor_args)
 
-        if features is None:
+        if root:
             features = dict()
 
         features[self.key] = nf
 
-        if not self.store:
+        if not is_cached:
             for n in self.needs:
-                n._partial(_id,features = features)
+                n._partial(_id, features = features)
                 nf.add_dependency(features[n.key])
 
         return features
-
-    def _depends_on(self,_id,graph):
+    
+    def _depends_on(self, _id, graph):
         needs = []
         for f in self.needs:
             if f.key in graph:
                 needs.append(graph[f.key])
                 continue
-            e = f._build_extractor(_id,graph)
+            e = f._build_extractor(_id, graph)
             needs.append(e)
         return needs
 
@@ -158,10 +164,10 @@ class Feature(object):
             pass
         
         needs = self._depends_on(_id, graph)
-        e = self.extractor(needs = needs,**self.extractor_args)
+        e = self.extractor(needs = needs, **self.extractor_args)
         if isinstance(e, DecoderNode):
-            reader = self.reader(_id,self.key)
-            setattr(e,'_reader',reader)
+            reader = self.reader(_id, self.key)
+            setattr(e, '_reader', reader)
             
         graph[self.key] = e
         if not self.store: return e

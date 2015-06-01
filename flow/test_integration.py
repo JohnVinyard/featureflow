@@ -248,6 +248,11 @@ class BaseTest(object):
 		self.assertEqual(2, doc.count['a'])
 		del doc
 		
+		db = Registry.get_instance(Database)
+		key_builder = Registry.get_instance(KeyBuilder)
+		key = key_builder.build(_id, 'count')
+		self.assertTrue(key in db)
+		
 		# count should be retrieved
 		doc = D2(_id)
 		self.assertEqual(2, doc.count['a'])
@@ -275,10 +280,18 @@ class BaseTest(object):
 		self.assertEqual(2, doc.count['a'])
 		del doc
 		
+		db = Registry.get_instance(Database)
+		key_builder = Registry.get_instance(KeyBuilder)
+		key = key_builder.build(_id, 'count')
+		self.assertTrue(key in db)
+		
 		# aggregate should be computed and stored lazily
 		doc = D2(_id)
 		self.assertEqual(2, doc.aggregate['a'])
 		del doc
+		
+		key = key_builder.build(_id, 'aggregate')
+		self.assertTrue(key in db)
 		
 		# aggregate should be retrieved
 		doc = D2(_id)

@@ -85,7 +85,7 @@ class Feature(object):
     def database(self): pass
     
     @dependency(DataWriter)
-    def _data_writer(self,needs = None, _id = None, feature_name = None):
+    def _data_writer(self, needs = None, _id = None, feature_name = None):
         pass
     
     def reader(self, _id, key):
@@ -125,13 +125,21 @@ class Feature(object):
         
         root = features is None
         
-        is_cached = self.store and self._stored(_id)
+        stored = self._stored(_id)
+        is_cached = self.store and stored
+        
+        if self.store and not stored:
+            data_writer = None
+        elif root:
+            data_writer = StringIODataWriter
+        else:
+            data_writer = None
         
         nf = self.copy(\
             extractor = DecoderNode if is_cached else self.extractor,
             store = root,
             needs = None,
-            data_writer = StringIODataWriter if root else None,
+            data_writer = data_writer,
             extractor_args = dict(decodifier = self.decoder) \
                 if is_cached else self.extractor_args)
 

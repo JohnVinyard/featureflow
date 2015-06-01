@@ -1,7 +1,7 @@
 from extractor import Graph
 from dependency_injection import dependency
 from feature import Feature
-from data import IdProvider,StringIODataWriter
+from data import IdProvider,DataWriter,StringIODataWriter
 
 class MetaModel(type):
     
@@ -64,7 +64,7 @@ class BaseModel(object):
         if not f._can_compute():
             raise AttributeError('%s cannot be computed' % f.key)
 
-        graph, data_writer = self._build_partial(self._id, f)
+        graph, stream = self._build_partial(self._id, f)
         
         kwargs = dict()
         for k,extractor in graph.roots().iteritems():
@@ -74,7 +74,8 @@ class BaseModel(object):
                 kwargs[k] = f.reader(self._id, k)
           
         graph.process(**kwargs)
-        stream = data_writer._stream
+        if stream is None:
+            stream = feature.reader(self._id, feature.key)
         stream.seek(0)
         decoded = feature.decoder(stream)
         setattr(self,key,decoded)
@@ -94,9 +95,12 @@ class BaseModel(object):
         for feat in features.itervalues():
             e = feat._build_extractor(_id, g)
             if feat.key == feature.key:
-                data_writer = e.find_listener(\
-                    lambda x : isinstance(x, StringIODataWriter))
-        return g, data_writer
+                stream = e.find_listener(\
+                  lambda x : isinstance(x, StringIODataWriter))
+                if stream is not None:
+                    stream = stream._stream
+                
+        return g, stream
     
     @classmethod
     @dependency(IdProvider)

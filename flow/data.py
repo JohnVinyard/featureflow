@@ -182,20 +182,20 @@ class DataWriter(Node):
     
     @property
     def key(self):
-        return self.key_builder.build(self._id,self.feature_name)
+        return self.key_builder.build(self._id, self.feature_name)
     
     @property
     @dependency(Database)
     def db(self): pass
 
     def __enter__(self):
-        self._stream = self.db.write_stream(self.key,self.content_type)
+        self._stream = self.db.write_stream(self.key, self.content_type)
         return self
 
-    def __exit__(self,t,value,traceback):
+    def __exit__(self, t, value, traceback):
         self._stream.close()
         
-    def _process(self,data):
+    def _process(self, data):
         yield self._stream.write(data)
 
 class StringIODataWriter(Node):

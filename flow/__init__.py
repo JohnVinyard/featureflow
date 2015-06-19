@@ -16,3 +16,5 @@ from dependency_injection import Registry,dependency,register
 from nmpy import StreamingNumpyDecoder
 
 from database_iterator import DatabaseIterator
+
+from decoder import Decoder

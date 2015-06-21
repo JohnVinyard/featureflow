@@ -2,6 +2,7 @@ import numpy as np
 from extractor import Node
 from feature import Feature
 from util import chunked
+from decoder import Decoder
 import struct
 
 class NumpyMetaData(object):
@@ -66,10 +67,10 @@ def _np_from_buffer(b, shape, dtype):
 	f = np.frombuffer if len(b) else np.fromstring
 	return f(b, dtype = dtype).reshape(shape)
 
-class GreedyNumpyDecoder(Node):
+class GreedyNumpyDecoder(Decoder):
 
-	def __init__(self,needs = None):
-		super(GreedyNumpyDecoder,self).__init__(needs = needs)
+	def __init__(self):
+		super(GreedyNumpyDecoder, self).__init__()
 
 	def __call__(self,flo):
 		metadata, bytes_read = NumpyMetaData.unpack(flo)
@@ -82,10 +83,10 @@ class GreedyNumpyDecoder(Node):
 	def __iter__(self,flo):
 		yield self(flo)
 
-class StreamingNumpyDecoder(Node):
+class StreamingNumpyDecoder(Decoder):
 	
-	def __init__(self,needs = None,n_examples = 100):
-		super(StreamingNumpyDecoder,self).__init__(needs = needs)
+	def __init__(self,n_examples = 100):
+		super(StreamingNumpyDecoder,self).__init__()
 		self.n_examples = n_examples
 	
 	def __call__(self,flo):

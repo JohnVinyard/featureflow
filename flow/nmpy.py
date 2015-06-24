@@ -29,7 +29,7 @@ class NumpyMetaData(object):
 		return self.itemsize * self.size
 
 	def __repr__(self):
-		return repr((str(np.dtype(self.dtype)),self.shape))
+		return repr((str(np.dtype(self.dtype)), self.shape))
 
 	def __str__(self):
 		return self.__repr__()
@@ -37,11 +37,11 @@ class NumpyMetaData(object):
 	def pack(self):
 		s = str(self)
 		l = len(s)
-		return struct.pack('B{n}s'.format(n = l),l,s)
+		return struct.pack('B{n}s'.format(n = l), l, s)
 
 	@classmethod
 	def unpack(cls,flo):
-		l = struct.unpack('B',flo.read(1))[0]
+		l = struct.unpack('B', flo.read(1))[0]
 		bytes_read = 1 + l
 		return cls(*eval(flo.read(l))), bytes_read
 

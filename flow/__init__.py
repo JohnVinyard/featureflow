@@ -13,7 +13,7 @@ IdProvider,UuidProvider,UserSpecifiedIdProvider,KeyBuilder\
 
 from dependency_injection import Registry,dependency,register
 
-from nmpy import StreamingNumpyDecoder
+from nmpy import StreamingNumpyDecoder, NumpyMetaData
 
 from database_iterator import DatabaseIterator
 

@@ -176,9 +176,10 @@ class Feature(object):
         if isinstance(e, DecoderNode):
             reader = self.reader(_id, self.key)
             setattr(e, '_reader', reader)
-            
+        
         graph[self.key] = e
         if not self.store: return e
+        
         key = self.key
         encoder = self.encoder(needs = e)
         graph['{key}_encoder'.format(**locals())] = encoder

@@ -32,6 +32,14 @@ class TextStream(Node):
 		for chunk in chunked(flo,chunksize = self._chunksize):
 			yield chunk
 
+class Counter(Node):
+	
+	Count = 0
+	
+	def _process(self, data):
+		Counter.Count += 1
+		yield data
+
 class Dam(Aggregator,Node):
 	'''
 	Gather input until all has been received, and then dole it out in small
@@ -230,6 +238,18 @@ class MultipleRoots(BaseModel):
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
 
 class BaseTest(object):
+	
+	def test_unstored_leaf_feature_is_not_computed_during_process(self):
+		
+		class D(BaseModel):
+			stream = Feature(TextStream, store = True)
+			copy = Feature(Counter, needs = stream, store = False)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = True)
+		
+		Counter.Count = 0
+		_id = D.process(stream = 'humpty')
+		self.assertEqual(0, Counter.Count)
 	
 	def test_can_incrementally_build_document(self):
 		class D1(BaseModel):

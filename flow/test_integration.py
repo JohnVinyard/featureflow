@@ -2,11 +2,13 @@ import unittest2
 from collections import defaultdict
 import random
 
-from extractor import NotEnoughData,Aggregator,Graph
+from extractor import NotEnoughData,Aggregator
 from model import BaseModel
 from feature import Feature,JSONFeature,CompressedFeature
 from dependency_injection import Registry,register
 from data import *
+from bytestream import ByteStream
+from io import BytesIO
 from util import chunked,TempDir
 
 data_source = {
@@ -239,6 +241,25 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 	
+	def test_can_pass_bytes_io_to_bytestream(self):
+		
+		class ByteStreamDocument(BaseModel):
+			stream = Feature(ByteStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = False)
+		
+		class HasUri(object):
+			def __init__(self, bio):
+				self.uri = bio
+		
+		bio = BytesIO()
+		bio.write('mary had a little lamb little lamb little lamb')
+		huri = HasUri(bio)
+		
+		_id = ByteStreamDocument.process(stream = huri)
+		doc = ByteStreamDocument(_id)
+		self.assertEqual(3, doc.count['lamb'])
+		
 	def test_unstored_leaf_feature_is_not_computed_during_process(self):
 		
 		class D(BaseModel):

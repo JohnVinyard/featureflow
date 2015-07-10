@@ -21,9 +21,15 @@ class ByteStream(Node):
             yield StringWithTotalLength(chunk,content_length)
     
     def _handle_local_file(self,data):
-        with open(data,'rb') as f:
-            content_length = int(os.path.getsize(data))
-            for chunk in chunked(f, chunksize = self._chunksize):
+        try:
+            with open(data,'rb') as f:
+                content_length = int(os.path.getsize(data))
+                for chunk in chunked(f, chunksize = self._chunksize):
+                    yield StringWithTotalLength(chunk,content_length)
+        except TypeError:
+            content_length = data.seek(0, 2)
+            data.seek(0)
+            for chunk in chunked(data, chunksize = self._chunksize):
                 yield StringWithTotalLength(chunk,content_length)
     
     def _process(self,data):

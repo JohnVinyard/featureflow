@@ -135,9 +135,10 @@ class Feature(object):
         else:
             data_writer = None
         
+        should_store = self.store and not stored
         nf = self.copy(\
             extractor = DecoderNode if is_cached else self.extractor,
-            store = root,
+            store = root or should_store,
             needs = None,
             data_writer = data_writer,
             extractor_args = dict(decodifier = self.decoder) \

@@ -338,6 +338,43 @@ class BaseTest(object):
 		doc = D2(_id)
 		self.assertEqual(2, doc.aggregate['a'])
 	
+	def test_can_incrementally_build_document_by_calling_leaf_feature(self):
+		class D1(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+		
+		_id = D1.process(stream = 'humpty')
+		
+		class D2(BaseModel):
+			stream = Feature(TextStream, store = True)
+			words  = Feature(Tokenizer, needs = stream, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = True)
+			aggregate = JSONFeature(WordCountAggregator, needs = count, store = True)
+		
+		# aggregate should be computed and stored lazily
+		doc = D2(_id)
+		self.assertEqual(2, doc.aggregate['a'])
+		del doc
+		
+		db = Registry.get_instance(Database)
+		key_builder = Registry.get_instance(KeyBuilder)
+		
+		# Note that count was never called explicitly, but we should have stored
+		# it just the same
+		key = key_builder.build(_id, 'count')
+		self.assertTrue(key in db)
+		key = key_builder.build(_id, 'aggregate')
+		self.assertTrue(key in db)
+		
+		# count should be retrieved
+		doc = D2(_id)
+		self.assertEqual(2, doc.count['a'])
+		del doc
+		
+		# aggregate should be retrieved
+		doc = D2(_id)
+		self.assertEqual(2, doc.aggregate['a'])
+	
 	def test_can_explicitly_specify_identifier(self):
 		
 		@register(IdProvider,UserSpecifiedIdProvider(key = '_id'))

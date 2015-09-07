@@ -160,7 +160,7 @@ class FileSystemDatabase(Database):
     
     def __contains__(self, key):
         path = os.path.join(self._path, key)
-        return bool(glob.glob('{path}*'.format(**locals())))
+        return os.path.exists(path)
 
 class DataWriter(Node):
     

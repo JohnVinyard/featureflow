@@ -2,14 +2,15 @@ import unittest2
 from collections import defaultdict
 import random
 
-from extractor import NotEnoughData,Aggregator
+from extractor import NotEnoughData, Aggregator
 from model import BaseModel
-from feature import Feature,JSONFeature,CompressedFeature
+from feature import Feature, JSONFeature, CompressedFeature
 from dependency_injection import Registry,register
 from data import *
 from bytestream import ByteStream
 from io import BytesIO
-from util import chunked,TempDir
+from util import chunked, TempDir
+from lmdbstore import LmdbDatabase
 
 data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
@@ -740,24 +741,36 @@ class BaseTest(object):
 		self.assertEqual(data_source['lorem'].lower(),''.join(doc.lowercase))
 	
 		
-class InMemoryTest(BaseTest,unittest2.TestCase):
+class InMemoryTest(BaseTest, unittest2.TestCase):
 
 	def setUp(self):
-		Registry.register(IdProvider,UuidProvider())
-		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,InMemoryDatabase(name = 'root'))
-		Registry.register(DataWriter,DataWriter)
+		Registry.register(IdProvider, UuidProvider())
+		Registry.register(KeyBuilder, StringDelimitedKeyBuilder())
+		Registry.register(Database, InMemoryDatabase(name = 'root'))
+		Registry.register(DataWriter, DataWriter)
 
-class FileSystemTest(BaseTest,unittest2.TestCase):
+class FileSystemTest(BaseTest, unittest2.TestCase):
 	
 	def setUp(self):
 		self._dir = TempDir()
-		Registry.register(IdProvider,UuidProvider())
-		Registry.register(KeyBuilder,StringDelimitedKeyBuilder())
-		Registry.register(Database,FileSystemDatabase(path = self._dir.path))
-		Registry.register(DataWriter,DataWriter)
+		Registry.register(IdProvider, UuidProvider())
+		Registry.register(KeyBuilder, StringDelimitedKeyBuilder())
+		Registry.register(Database, FileSystemDatabase(path = self._dir.path))
+		Registry.register(DataWriter, DataWriter)
 	
 	def tearDown(self):
 		self._dir.cleanup()
+
+
+class LmdbTest(BaseTest, unittest2.TestCase):
 	
-		
+	def setUp(self):
+		self._dir = TempDir()
+		Registry.register(IdProvider, UuidProvider())
+		Registry.register(KeyBuilder, StringDelimitedKeyBuilder())
+		Registry.register(Database, LmdbDatabase(\
+			path = self._dir.path, map_size = 10000000))
+		Registry.register(DataWriter, DataWriter)
+	
+	def tearDown(self):
+		self._dir.cleanup()

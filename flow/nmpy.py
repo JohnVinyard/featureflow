@@ -98,7 +98,7 @@ class StreamingNumpyDecoder(Decoder):
 		chunk_size = int(example_size * self.n_examples)
 		count = 0
 		
-		for chunk in chunked(flo,chunk_size):
+		for chunk in chunked(flo, chunk_size):
 			n_examples = len(chunk) // example_size
 			yield _np_from_buffer(\
 				chunk,

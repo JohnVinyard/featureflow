@@ -2,7 +2,7 @@ import unittest2
 
 try:
 	import numpy as np
-	from nmpy import NumpyFeature,StreamingNumpyDecoder
+	from nmpy import NumpyFeature, StreamingNumpyDecoder
 except ImportError:
 	np = None
 
@@ -10,7 +10,7 @@ from dependency_injection import Registry
 from data import *
 from model import BaseModel
 from util import TempDir
-
+from lmdbstore import LmdbDatabase
 
 class PassThrough(Node):
 
@@ -86,6 +86,16 @@ class GreedyNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 	def tearDown(self):
 		self._dir.cleanup()
 
+class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
+	
+	def _register_database(self):
+		self._dir = TempDir()
+		Registry.register(Database, LmdbDatabase(\
+			path = self._dir.path, map_size = 10000000))
+	
+	def tearDown(self):
+		self._dir.cleanup()
+
 class StreamingNumpyTest(BaseNumpyTest,unittest2.TestCase):
 	
 	def _register_database(self):
@@ -121,3 +131,25 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest,unittest2.TestCase):
 	
 	def _restore(self, data):
 		return np.concatenate(list(data))
+
+class StreamingNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
+	
+	def _register_database(self):
+		self._dir = TempDir()
+		Registry.register(Database, LmdbDatabase(\
+			path = self._dir.path, map_size = 10000000))
+	
+	def tearDown(self):
+		self._dir.cleanup()
+	
+	def _build_doc(self):
+		class Doc(BaseModel):
+			feat = NumpyFeature(\
+				PassThrough,
+				store = True, 
+				decoder = StreamingNumpyDecoder(n_examples = 3))
+		return Doc
+	
+	def _restore(self, data):
+		return np.concatenate(list(data))
+		

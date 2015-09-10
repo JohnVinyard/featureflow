@@ -95,7 +95,7 @@ class WordCountAggregator(Aggregator,Node):
 		super(WordCountAggregator,self).__init__(needs = needs)
 		self._cache = defaultdict(int)
 	
-	def _enqueue(self,data,pusher):
+	def _enqueue(self, data, pusher):
 		for k,v in data.iteritems():
 			self._cache[k.lower()] += v
 
@@ -195,12 +195,12 @@ class FeatureAggregator(Node):
 		self._cls = cls
 		self._feature = feature
 	
-	def _process(self,data):
+	def _process(self, data):
 		db = data
 		for key in db.iter_ids():
 			try:
 				doc = self._cls(key)
-				yield getattr(doc,self._feature.key)
+				yield getattr(doc, self._feature.key)
 			except:
 				pass
 
@@ -210,18 +210,6 @@ class Document(BaseModel):
 	stream = Feature(TextStream, store = True)
 	words  = Feature(Tokenizer, needs = stream, store = False)
 	count  = JSONFeature(WordCount, needs = words, store = False)
-
-class DocumentWordCount(BaseModel):
-	counts = Feature(\
-		FeatureAggregator, 
-		cls = Document, 
-		feature = Document.count,
-		store = False)
-	
-	total_count = JSONFeature(\
-		WordCountAggregator, 
-		store = True, 
-		needs = counts)
 
 class Document2(BaseModel):
 	
@@ -446,12 +434,26 @@ class BaseTest(object):
 		self.assertEqual(doc2.t1.read() + doc2.t1.read(),doc2.cat.read())
 	
 	def test_can_process_multiple_documents_and_then_aggregate_word_count(self):
+		
+		class DocumentWordCount(BaseModel):
+	
+			counts = Feature(\
+				FeatureAggregator, 
+				cls = Document, 
+				feature = Document.count,
+				store = False)
+			
+			total_count = JSONFeature(\
+				WordCountAggregator, 
+				store = True, 
+				needs = counts)
+			
 		_id1 = Document.process(stream = 'mary')
 		_id2 = Document.process(stream = 'humpty')
 		_id3 = DocumentWordCount.process(\
 			counts = Registry.get_instance(Database))
 		doc = DocumentWordCount(_id3)
-		self.assertEqual(3,doc.total_count['a'])
+		self.assertEqual(3, doc.total_count['a'])
 	
 
 	def test_document_with_multiple_roots(self):

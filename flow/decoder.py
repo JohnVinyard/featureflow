@@ -42,7 +42,8 @@ class JSONDecoder(GreedyDecoder):
 		super(JSONDecoder,self).__init__()
 
 	def __call__(self,flo):
-		return simplejson.loads(super(JSONDecoder,self).__call__(flo))
+		s = super(JSONDecoder,self).__call__(flo)
+		return simplejson.loads(s)
 
 	def __iter__(self,flo):
 		yield self(flo)

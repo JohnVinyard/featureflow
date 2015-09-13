@@ -29,7 +29,7 @@ class WriteStream(object):
 class ReadStream(object):
     
     def __init__(self, buf):
-        self.view = memoryview(buf)
+        self.buf = buf
         self.pos = 0
     
     def __enter__(self):
@@ -44,14 +44,14 @@ class ReadStream(object):
     
     def read(self, nbytes = None):
         if nbytes is None:
-            nbytes = len(self.view)
-        v = self.view[self.pos : self.pos + nbytes]
+            nbytes = len(self.buf)
+        v = buffer(self.buf, self.pos, nbytes)
         self.pos += nbytes
         # KLUDGE: This negates most of the benefit of returning pointers
         # directly to the memory-mapped data, because it creates a copy.
         # Is there any way to treat this as a string/bytes without copying
         # the data?
-        return v.tobytes()
+        return v[:]
 
 class LmdbDatabase(Database):
     

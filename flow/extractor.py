@@ -1,5 +1,6 @@
 from itertools import izip_longest
 import contextlib
+
  
 class Node(object):
 
@@ -59,6 +60,10 @@ class Node(object):
             else:
                 return l.find_listener(predicate)
         return None
+    
+    def disconnect(self):
+        for e in self.needs:
+            e._listeners.remove(self)
 
     def _enqueue(self,data,pusher):
         self._cache = data
@@ -147,6 +152,12 @@ class Graph(dict):
     
     def leaves(self):
         return dict((k,v) for k,v in self.iteritems() if v.is_leaf)
+
+    def remove_dead_nodes(self, features):
+        for feature in features:
+            extractor = self[feature.key]
+            if extractor.is_leaf and not feature.store:
+                extractor.disconnect()
 
     def process(self,**kwargs):
         # get all root nodes (those that produce data, rather than consuming 

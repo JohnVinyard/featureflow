@@ -85,7 +85,9 @@ class BaseModel(object):
     def _build_extractor(cls,_id):
         g = Graph()
         for feature in cls.features.itervalues():
-            feature._build_extractor(_id,g)
+            feature._build_extractor(_id, g)
+            
+            
         return g
 
     @classmethod
@@ -104,11 +106,14 @@ class BaseModel(object):
     
     @classmethod
     @dependency(IdProvider)
-    def id_provider(cls): pass 
+    def id_provider(cls): pass
+    
+    
      
     @classmethod
-    def process(cls,**kwargs):
+    def process(cls, **kwargs):
         _id = cls.id_provider().new_id(**kwargs)
         graph = cls._build_extractor(_id)
+        graph.remove_dead_nodes(cls.features.itervalues())
         graph.process(**kwargs)
         return _id

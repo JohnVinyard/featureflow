@@ -77,6 +77,21 @@ class ToLower(Node):
 	def _process(self,data):
 		yield data.lower()
 
+class Contrarion(Node):
+	
+	def __init__(self, needs = None):
+		super(Contrarion, self).__init__(needs = needs)
+		self._op = None 
+	
+	def _first_chunk(self, data):
+		if data[0].isupper():
+			self._op = lambda x : x.lower()
+		else:
+			self._op = lambda x : x.upper()
+	
+	def _process(self, data):
+		yield self._op(data)
+
 class Concatenate(Aggregator,Node):
 
 	def __init__(self, needs = None):
@@ -229,6 +244,15 @@ class MultipleRoots(BaseModel):
 	cat = Feature(EagerConcatenate, needs = [stream1,stream2], store = True)
 
 class BaseTest(object):
+	
+	def test_initializes_on_first_chunk(self):
+		class D(BaseModel):
+			stream = Feature(TextStream, store = True)
+			opposite = Feature(Contrarion, needs = stream, store = True)
+		
+		_id = D.process(stream = 'cased')
+		doc = D(_id)
+		self.assertTrue(doc.opposite.read().islower())
 	
 	def test_can_pass_bytes_io_to_bytestream(self):
 		

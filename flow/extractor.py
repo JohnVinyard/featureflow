@@ -77,6 +77,9 @@ class Node(object):
 
     def _process(self,data):
         yield data
+    
+    def _first_chunk(self, data):
+        pass
 
     def _finalize(self,pusher):
         pass
@@ -110,7 +113,10 @@ class Node(object):
             self._enqueue(data,pusher)
 
         try:
-            data = self._process(self._dequeue())
+            inp = self._dequeue()
+            self._first_chunk(inp)
+            self._first_chunk = lambda x : None
+            data = self._process(inp)
             for d in data: yield self._push(d)
         except NotEnoughData:
             yield None

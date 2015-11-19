@@ -88,6 +88,7 @@ class Contrarion(Node):
 			self._op = lambda x : x.lower()
 		else:
 			self._op = lambda x : x.upper()
+		return data
 	
 	def _process(self, data):
 		yield self._op(data)
@@ -272,6 +273,9 @@ class BaseTest(object):
 		_id = ByteStreamDocument.process(stream = huri)
 		doc = ByteStreamDocument(_id)
 		self.assertEqual(3, doc.count['lamb'])
+	
+	def test_unstored_feature_with_no_stored_dependents_is_not_computed_during_process(self):
+		self.fail()
 		
 	def test_unstored_leaf_feature_is_not_computed_during_process(self):
 		

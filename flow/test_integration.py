@@ -77,6 +77,17 @@ class ToLower(Node):
 	def _process(self,data):
 		yield data.lower()
 
+class TheLastWord(Node):
+	
+	def __init__(self, needs = None):
+		super(TheLastWord, self).__init__(needs = needs)
+	
+	def _process(self, data):
+		yield data.upper()
+	
+	def _last_chunk(self):
+		yield 'final'
+
 class Contrarion(Node):
 	
 	def __init__(self, needs = None):
@@ -273,6 +284,16 @@ class BaseTest(object):
 		_id = ByteStreamDocument.process(stream = huri)
 		doc = ByteStreamDocument(_id)
 		self.assertEqual(3, doc.count['lamb'])
+	
+	def test_can_output_final_chunk(self):
+		class Doc(BaseModel):
+			stream = Feature(TextStream, store = True)
+			final = Feature(TheLastWord, needs = stream, store = True)
+
+		_id = Doc.process(stream = 'cased')
+		doc = Doc(_id)
+		self.assertEqual('THIS IS A TEST.final',doc.final.read())
+
 	
 	def test_unstored_feature_with_no_stored_dependents_is_not_computed_during_process(self):
 		self.fail()

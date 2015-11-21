@@ -80,6 +80,9 @@ class Node(object):
     
     def _first_chunk(self, data):
         return data
+    
+    def _last_chunk(self):
+        return iter(())
 
     def _finalize(self,pusher):
         pass
@@ -122,6 +125,8 @@ class Node(object):
             yield None
 
         if self.is_root or self._finalized:
+            chunks = self._last_chunk()
+            for chunk in chunks: self._push(chunk)
             self.__finalize()
             self._push(None)
             yield None
@@ -133,7 +138,6 @@ class Aggregator(object):
     '''
     def __init__(self,needs = None):
         super(Aggregator,self).__init__(needs = needs)
-    
     def _dequeue(self):
         if not self._finalized:
             raise NotEnoughData()

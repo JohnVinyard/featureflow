@@ -113,8 +113,8 @@ class Concatenate(Aggregator,Node):
 	def _enqueue(self,data,pusher):
 		self._cache[id(pusher)] += data
 
-	def _process(self,data):
-		yield ''.join(data.itervalues())
+	def _process(self, data):
+		yield ''.join((data[id(n)] for n in self._needs))
 
 class WordCountAggregator(Aggregator,Node):
 	
@@ -581,7 +581,7 @@ class BaseTest(object):
 
 		_id = Doc3.process(stream = 'cased')
 		doc = Doc3(_id)
-		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+		self.assertEqual('THIS IS A TEST.this is a test.',doc.cat.read())
 	
 	def test_can_read_computed_property_with_multiple_dependencies(self):
 		
@@ -602,7 +602,7 @@ class BaseTest(object):
 		doc.uppercase.seek(0)
 		doc.lowercase.seek(0)
 		
-		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+		self.assertEqual('THIS IS A TEST.this is a test.',doc.cat.read())
 	
 	def test_can_read_computed_property_when_dependencies_are_in_different_data_stores(self):
 		db1 = InMemoryDatabase('alt1')
@@ -631,7 +631,7 @@ class BaseTest(object):
 		self.assertEqual(data_source[keyname].upper(),doc.uppercase.read())
 		self.assertEqual(data_source[keyname].lower(),doc.lowercase.read())
 		
-		self.assertEqual('this is a test.THIS IS A TEST.',doc.cat.read())
+		self.assertEqual('THIS IS A TEST.this is a test.',doc.cat.read())
 	
 	def test_can_inherit(self):
 		class A(BaseModel):

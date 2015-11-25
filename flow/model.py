@@ -86,8 +86,6 @@ class BaseModel(object):
         g = Graph()
         for feature in cls.features.itervalues():
             feature._build_extractor(_id, g)
-            
-            
         return g
 
     @classmethod
@@ -108,8 +106,6 @@ class BaseModel(object):
     @dependency(IdProvider)
     def id_provider(cls): pass
     
-    
-     
     @classmethod
     def process(cls, **kwargs):
         _id = cls.id_provider().new_id(**kwargs)

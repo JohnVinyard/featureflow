@@ -1,6 +1,6 @@
 from itertools import izip_longest
 import contextlib
-
+from collections import deque
  
 class Node(object):
 
@@ -53,7 +53,7 @@ class Node(object):
     def add_listener(self,listener):
         self._listeners.append(listener)
 
-    def find_listener(self,predicate):
+    def find_listener(self, predicate):
         for l in self._listeners:
             if predicate(l):
                 return l
@@ -161,14 +161,23 @@ class Graph(dict):
         return dict((k,v) for k,v in self.iteritems() if v.is_root)
     
     def leaves(self):
-        return dict((k,v) for k,v in self.iteritems() if v.is_leaf)
+        return dict((k,v) for k,v in self.iteritems() if v.is_leaf)    
 
     def remove_dead_nodes(self, features):
-        for feature in features:
-            extractor = self[feature.key]
+        # starting from the leaves, remove any nodes that are not stored, and 
+        # have no stored consuming nodes
+        mapping = dict((self[f.key], f) for f in features)
+        nodes = deque(self.leaves().itervalues())
+        while nodes:
+            extractor = nodes.pop()
+            nodes.extendleft(extractor.needs)
+            try:
+                feature = mapping[extractor]
+            except KeyError:
+                continue
             if extractor.is_leaf and not feature.store:
                 extractor.disconnect()
-
+    
     def process(self,**kwargs):
         # get all root nodes (those that produce data, rather than consuming 
         # it)

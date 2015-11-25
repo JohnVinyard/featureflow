@@ -41,7 +41,7 @@ class Counter(Node):
 	
 	def _process(self, data):
 		Counter.Count += 1
-		yield data
+		yield data	
 
 class Dam(Aggregator,Node):
 	'''
@@ -296,7 +296,16 @@ class BaseTest(object):
 
 	
 	def test_unstored_feature_with_no_stored_dependents_is_not_computed_during_process(self):
-		self.fail()
+		
+		class D(BaseModel):
+			stream = Feature(TextStream, store = True)
+			copy = Feature(Counter, needs = stream, store = False)
+			words  = Feature(Tokenizer, needs = copy, store = False)
+			count  = JSONFeature(WordCount, needs = words, store = False)
+		
+		Counter.Count = 0
+		_id = D.process(stream = 'humpty')
+		self.assertEqual(0, Counter.Count)
 		
 	def test_unstored_leaf_feature_is_not_computed_during_process(self):
 		

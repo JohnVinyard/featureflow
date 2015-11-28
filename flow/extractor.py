@@ -1,6 +1,6 @@
 from itertools import izip_longest
 import contextlib
-from collections import deque
+from collections import deque, defaultdict
  
 class Node(object):
 
@@ -55,17 +55,14 @@ class Node(object):
 
     def find_listener(self, predicate):
         for l in self._listeners:
-            if predicate(l):
-                return l
-            else:
-                return l.find_listener(predicate)
+            return l if predicate(l) else l.find_listener(predicate)
         return None
     
     def disconnect(self):
         for e in self.needs:
             e._listeners.remove(self)
 
-    def _enqueue(self,data,pusher):
+    def _enqueue(self, data, pusher):
         self._cache = data
 
     def _dequeue(self):
@@ -75,7 +72,7 @@ class Node(object):
         v, self._cache = self._cache, None
         return v
 
-    def _process(self,data):
+    def _process(self, data):
         yield data
     
     def _first_chunk(self, data):
@@ -84,7 +81,7 @@ class Node(object):
     def _last_chunk(self):
         return iter(())
 
-    def _finalize(self,pusher):
+    def _finalize(self, pusher):
         pass
     
     @property
@@ -98,37 +95,43 @@ class Node(object):
             len(self._finalized_dependencies) >= self.dependency_count \
             and len(self._enqueued_dependencies) >= self.dependency_count 
 
-    def _push(self,data):
-        for l in self._listeners:
-            [x for x in l.process(data,self)]
+    def _push(self, data, queue = None):
+        queue.appendleft((
+              id(self),
+              self.process.__name__, 
+              { 'pusher' : self, 'data' : data, 'queue' : queue}))
+        #queue.appendleft((self, data, False))
 
-    def __finalize(self,pusher = None):
+    def _finish(self, pusher = None, queue = None):
         self._finalize(pusher)
         if pusher in self._needs:
             self._finalized_dependencies.add(id(pusher))
         if pusher: return
-        for l in self._listeners:
-            l.__finalize(self)
+        #queue.appendleft((self, None, True))
+        queue.appendleft((
+              id(self),
+              self._finish.__name__, 
+              { 'pusher' : self, 'queue' : queue}))
 
-    def process(self,data = None,pusher = None):
+    def process(self, data = None, pusher = None, queue = None):
         if data is not None:
             self._enqueued_dependencies.add(id(pusher))
-            self._enqueue(data,pusher)
+            self._enqueue(data, pusher)
 
         try:
             inp = self._dequeue()
             inp = self._first_chunk(inp)
             self._first_chunk = lambda x : x
-            data = self._process(inp)
-            for d in data: yield self._push(d)
+            for d in self._process(inp): 
+                yield self._push(d, queue = queue)
         except NotEnoughData:
             yield None
 
         if self.is_root or self._finalized:
-            chunks = self._last_chunk()
-            for chunk in chunks: self._push(chunk)
-            self.__finalize()
-            self._push(None)
+            for chunk in self._last_chunk(): 
+                yield self._push(chunk, queue = queue)
+            self._finish(pusher = None, queue = queue)
+            self._push(None, queue = queue)
             yield None
 
 class Aggregator(object):
@@ -151,7 +154,6 @@ class NotEnoughData(Exception):
     ''' 
     pass
 
-
 class Graph(dict):
 
     def __init__(self,**kwargs):
@@ -161,13 +163,20 @@ class Graph(dict):
         return dict((k,v) for k,v in self.iteritems() if v.is_root)
     
     def leaves(self):
-        return dict((k,v) for k,v in self.iteritems() if v.is_leaf)    
+        return dict((k,v) for k,v in self.iteritems() if v.is_leaf)
+    
+    def subscriptions(self):
+        subscriptions = defaultdict(list)
+        for node in self.itervalues():
+            for n in node._needs:
+                subscriptions[id(n)].append(node)
+        return subscriptions
 
     def remove_dead_nodes(self, features):
         # starting from the leaves, remove any nodes that are not stored, and 
         # have no stored consuming nodes
         mapping = dict((self[f.key], f) for f in features)
-        nodes = deque(self.leaves().itervalues())
+        nodes = deque(self.leaves().values())
         while nodes:
             extractor = nodes.pop()
             nodes.extendleft(extractor.needs)
@@ -177,6 +186,7 @@ class Graph(dict):
                 continue
             if extractor.is_leaf and not feature.store:
                 extractor.disconnect()
+                del self[feature.key]
     
     def process(self,**kwargs):
         # get all root nodes (those that produce data, rather than consuming 
@@ -193,9 +203,20 @@ class Graph(dict):
                .format(kw = kwargs.keys(),r = roots.keys()))
         
         graph_args = dict((k,kwargs[k]) for k in intersection)
+        
+        subscriptions = self.subscriptions()
+        queue = deque()
                     
         # get a generator for each root node.
-        generators = [roots[k].process(v) for k,v in graph_args.iteritems()]
         with contextlib.nested(*self.values()) as _:
-            [x for x in izip_longest(*generators)] 
-
+            generators = [roots[k].process(v, queue = queue) \
+                          for k,v in graph_args.iteritems()]
+            for _ in izip_longest(*generators):
+                while queue:
+                    key, fname, kwargs = queue.pop()
+                    for subscriber in subscriptions[key]:
+                        func = getattr(subscriber, fname)
+                        try:
+                            [_ for _ in func(**kwargs)]
+                        except TypeError:
+                            continue

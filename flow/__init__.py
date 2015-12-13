@@ -17,6 +17,8 @@ from nmpy import StreamingNumpyDecoder, NumpyMetaData
 
 from database_iterator import DatabaseIterator
 
+from encoder import IdentityEncoder
+
 from decoder import Decoder
 
 from lmdbstore import LmdbDatabase

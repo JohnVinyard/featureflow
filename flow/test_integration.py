@@ -11,6 +11,7 @@ from bytestream import ByteStream
 from io import BytesIO
 from util import chunked, TempDir
 from lmdbstore import LmdbDatabase
+from decoder import Decoder
 
 data_source = {
 	'mary'   : 'mary had a little lamb little lamb little lamb',
@@ -256,6 +257,22 @@ class MultipleRoots(BaseModel):
 	cat = Feature(EagerConcatenate, needs=[stream1, stream2], store=True)
 
 class BaseTest(object):
+	
+	def test_can_use_alternate_decoder_for_stored_feature(self):
+		_id = Document2.process(stream = 'humpty')
+		count_as_text = Document2.count(_id = _id, decoder = Decoder()).read()
+		self.assertTrue(isinstance(count_as_text, str))
+		self.assertTrue('{' in count_as_text)
+	
+	def test_can_user_alternate_decoder_for_unstored_feature(self):
+		class D(BaseModel):
+			stream = Feature(TextStream, store=False)
+			words = Feature(Tokenizer, needs=stream, store=False)
+			count = JSONFeature(WordCount, needs=words, store=True)
+		_id = D.process(stream = 'humpty')
+		count_as_text = D.count(_id = _id, decoder = Decoder()).read()
+		self.assertTrue(isinstance(count_as_text, str))
+		self.assertTrue('{' in count_as_text)
 	
 	def test_initializes_on_first_chunk(self):
 		class D(BaseModel):

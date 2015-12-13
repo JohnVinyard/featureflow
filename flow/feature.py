@@ -1,3 +1,4 @@
+from extractor import Graph
 from encoder import IdentityEncoder,JSONEncoder,TextEncoder,BZ2Encoder,PickleEncoder
 from decoder import JSONDecoder,Decoder,GreedyDecoder,DecoderNode,BZ2Decoder,PickleDecoder
 from dependency_injection import dependency
@@ -116,6 +117,49 @@ class Feature(object):
             return False
 
         return all([n._can_compute() for n in self.needs])
+
+    def __call__(self, _id = None, decoder = None):
+        if decoder is None:
+            decoder = self.decoder
+            
+        try:
+            raw = self.reader(_id, self.key)
+            decoded = decoder(raw)
+            return decoded
+        except KeyError:
+            pass
+        
+        if not self._can_compute():
+            raise AttributeError('%s cannot be computed' % self.key)
+
+        graph, stream = self._build_partial(_id)
+        
+        kwargs = dict()
+        for k,extractor in graph.roots().iteritems():
+            try:
+                kwargs[k] = extractor._reader
+            except AttributeError:
+                kwargs[k] = self.reader(_id, k)
+          
+        graph.process(**kwargs)
+        if stream is None:
+            stream = self.reader(_id, self.key)
+        stream.seek(0)
+        decoded = decoder(stream)
+        return decoded
+    
+    def _build_partial(self, _id):
+        features = self._partial(_id)
+        g = Graph()
+        for feat in features.itervalues():
+            e = feat._build_extractor(_id, g)
+            if feat.key == self.key:
+                stream = e.find_listener(\
+                  lambda x : isinstance(x, StringIODataWriter))
+                if stream is not None:
+                    stream = stream._stream
+                
+        return g, stream
 
     def _partial(self, _id, features = None):
         '''

@@ -1,7 +1,7 @@
 from extractor import Graph
 from dependency_injection import dependency
 from feature import Feature
-from data import IdProvider,DataWriter,StringIODataWriter
+from data import IdProvider
 
 class MetaModel(type):
     
@@ -45,40 +45,15 @@ class BaseModel(object):
         super(BaseModel,self).__init__()
         self._id = _id
         
-    def __getattribute__(self,key):
-        f = object.__getattribute__(self,key)
+    def __getattribute__(self, key):
+        f = object.__getattribute__(self, key)
 
-        if not isinstance(f,Feature): 
+        if not isinstance(f, Feature): 
             return f
 
-        feature = getattr(self.__class__,key)
-
-        try:
-            raw = f.reader(self._id, key)
-            decoded = feature.decoder(raw)
-            setattr(self,key,decoded)
-            return decoded
-        except KeyError:
-            pass
-        
-        if not f._can_compute():
-            raise AttributeError('%s cannot be computed' % f.key)
-
-        graph, stream = self._build_partial(self._id, f)
-        
-        kwargs = dict()
-        for k,extractor in graph.roots().iteritems():
-            try:
-                kwargs[k] = extractor._reader
-            except AttributeError:
-                kwargs[k] = f.reader(self._id, k)
-          
-        graph.process(**kwargs)
-        if stream is None:
-            stream = feature.reader(self._id, feature.key)
-        stream.seek(0)
-        decoded = feature.decoder(stream)
-        setattr(self,key,decoded)
+        feature = getattr(self.__class__, key)
+        decoded = feature.__call__(self._id)
+        setattr(self, key, decoded)
         return decoded
     
     @classmethod
@@ -88,19 +63,6 @@ class BaseModel(object):
             feature._build_extractor(_id, g)
         return g
 
-    @classmethod
-    def _build_partial(cls, _id, feature):
-        features = feature._partial(_id)
-        g = Graph()
-        for feat in features.itervalues():
-            e = feat._build_extractor(_id, g)
-            if feat.key == feature.key:
-                stream = e.find_listener(\
-                  lambda x : isinstance(x, StringIODataWriter))
-                if stream is not None:
-                    stream = stream._stream
-                
-        return g, stream
     
     @classmethod
     @dependency(IdProvider)

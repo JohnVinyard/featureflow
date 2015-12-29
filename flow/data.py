@@ -1,7 +1,6 @@
 from StringIO import StringIO
 from uuid import uuid4
 import os
-import glob
 
 from extractor import Node
 from dependency_injection import dependency

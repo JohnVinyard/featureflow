@@ -23,3 +23,5 @@ from encoder import IdentityEncoder
 from decoder import Decoder
 
 from lmdbstore import LmdbDatabase
+
+from persistence import PersistenceSettings

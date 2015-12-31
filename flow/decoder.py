@@ -1,4 +1,4 @@
-import simplejson
+import json
 from util import chunked
 from extractor import Node
 import bz2
@@ -46,7 +46,7 @@ class JSONDecoder(GreedyDecoder):
 
     def __call__(self, flo):
         s = super(JSONDecoder, self).__call__(flo)
-        return simplejson.loads(s)
+        return json.loads(s)
 
     def __iter__(self, flo):
         yield self(flo)

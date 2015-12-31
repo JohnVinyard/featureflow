@@ -1,4 +1,4 @@
-import simplejson
+import json
 from extractor import Node, Aggregator
 import bz2
 from cPickle import dumps
@@ -29,7 +29,7 @@ class JSONEncoder(Aggregator, Node):
         super(JSONEncoder, self).__init__(needs=needs)
 
     def _process(self, data):
-        yield simplejson.dumps(data)
+        yield json.dumps(data)
 
 
 class PickleEncoder(Aggregator, Node):

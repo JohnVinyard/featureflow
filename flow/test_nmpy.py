@@ -9,9 +9,10 @@ except ImportError:
 from persistence import PersistenceSettings
 from data import *
 from model import BaseModel
-from util import TempDir
 from lmdbstore import LmdbDatabase
 from extractor import Node
+from tempfile import mkdtemp
+from shutil import rmtree
 
 
 class PassThrough(Node):
@@ -87,25 +88,25 @@ class GreedyNumpyTest(BaseNumpyTest, unittest2.TestCase):
 
 class GreedyNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
         return settings_class.clone(database=FileSystemDatabase(
-            path=self._dir.path,
+            path=self._dir,
             key_builder=settings_class.key_builder))
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)
 
 
 class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
         return settings_class.clone(database=LmdbDatabase(
-            path=self._dir.path,
+            path=self._dir,
             map_size=10000000,
             key_builder=settings_class.key_builder))
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)
 
 
 class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
@@ -128,13 +129,13 @@ class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
 
 class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
         return settings_class.clone(database=FileSystemDatabase(
-            path=self._dir.path,
+            path=self._dir,
             key_builder=settings_class.key_builder))
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)
 
     def _build_doc(self):
         class Doc(BaseModel, self.Settings):
@@ -151,14 +152,14 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
 
 class StreamingNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
         return settings_class.clone(database=LmdbDatabase(
-            path=self._dir.path,
+            path=self._dir,
             map_size=10000000,
             key_builder=settings_class.key_builder))
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)
 
     def _build_doc(self):
         class Doc(BaseModel, self.Settings):

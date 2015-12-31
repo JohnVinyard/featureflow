@@ -8,10 +8,12 @@ from feature import Feature, JSONFeature, CompressedFeature
 from data import *
 from bytestream import ByteStream
 from io import BytesIO
-from util import chunked, TempDir
+from util import chunked
 from lmdbstore import LmdbDatabase
 from decoder import Decoder
 from persistence import PersistenceSettings
+from tempfile import mkdtemp
+from shutil import rmtree
 
 data_source = {
     'mary': 'mary had a little lamb little lamb little lamb',
@@ -883,33 +885,33 @@ class InMemoryTest(BaseTest, unittest2.TestCase):
 
 class FileSystemTest(BaseTest, unittest2.TestCase):
     def setUp(self):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
 
         class Settings(PersistenceSettings):
             id_provider = UuidProvider()
             key_builder = StringDelimitedKeyBuilder()
             database = FileSystemDatabase(
-                    path=self._dir.path, key_builder=key_builder)
+                    path=self._dir, key_builder=key_builder)
 
         self.Settings = Settings
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)
 
 
 class LmdbTest(BaseTest, unittest2.TestCase):
     def setUp(self):
-        self._dir = TempDir()
+        self._dir = mkdtemp()
 
         class Settings(PersistenceSettings):
             id_provider = UuidProvider()
             key_builder = StringDelimitedKeyBuilder()
             database = LmdbDatabase(
-                    path=self._dir.path,
+                    path=self._dir,
                     map_size=10000000,
                     key_builder=key_builder)
 
         self.Settings = Settings
 
     def tearDown(self):
-        self._dir.cleanup()
+        rmtree(self._dir)

@@ -154,7 +154,8 @@ class FileSystemDatabase(Database):
         seen = set()
         for fn in os.listdir(self._path):
             _id, _ = self.key_builder.decompose(fn)
-            if _id in seen: continue
+            if _id in seen:
+                continue
             yield _id
             seen.add(_id)
 

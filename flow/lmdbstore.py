@@ -57,7 +57,7 @@ class LmdbDatabase(Database):
     def __init__(self, path, map_size=1000000000, key_builder=None):
         super(LmdbDatabase, self).__init__(key_builder=key_builder)
         self.path = path
-        self.env = lmdb.open( \
+        self.env = lmdb.open(
                 self.path,
                 max_dbs=10,
                 map_size=map_size,

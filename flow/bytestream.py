@@ -81,7 +81,7 @@ class StringWithTotalLengthDecoder(Decoder):
 
 
 class ByteStreamFeature(Feature):
-    def __init__( \
+    def __init__(
             self,
             extractor,
             needs=None,

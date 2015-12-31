@@ -1,15 +1,16 @@
 from model import BaseModel
 
-from feature import Feature,JSONFeature,TextFeature,CompressedFeature,PickleFeature
+from feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
+    PickleFeature
 
-from extractor import Node,Graph,Aggregator,NotEnoughData
+from extractor import Node, Graph, Aggregator, NotEnoughData
 
-from bytestream import ByteStream,ByteStreamFeature
+from bytestream import ByteStream, ByteStreamFeature
 
 from data import \
-IdProvider,UuidProvider,UserSpecifiedIdProvider,KeyBuilder\
-,StringDelimitedKeyBuilder,Database \
-,FileSystemDatabase,InMemoryDatabase
+    IdProvider, UuidProvider, UserSpecifiedIdProvider, KeyBuilder \
+    , StringDelimitedKeyBuilder, Database \
+    , FileSystemDatabase, InMemoryDatabase
 
 from datawriter import DataWriter
 

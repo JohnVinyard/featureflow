@@ -1,6 +1,3 @@
-'''
-decoders should be a callables that take a file-like object and return...anything
-'''
 import simplejson
 from util import chunked
 from extractor import Node
@@ -9,9 +6,9 @@ from cPickle import loads
 
 
 class Decoder(object):
-    '''
-	The simplest possible decoder takes a file-like object and returns it
-	'''
+    """
+    The simplest possible decoder takes a file-like object and returns it
+    """
 
     def __init__(self):
         super(Decoder, self).__init__()
@@ -25,9 +22,9 @@ class Decoder(object):
 
 
 class GreedyDecoder(Decoder):
-    '''
-	A decoder that reads the entire file contents into memory
-	'''
+    """
+    A decoder that reads the entire file contents into memory
+    """
 
     def __init__(self):
         super(GreedyDecoder, self).__init__()
@@ -40,9 +37,9 @@ class GreedyDecoder(Decoder):
 
 
 class JSONDecoder(GreedyDecoder):
-    '''
-	A decoder that interprets the data as JSON
-	'''
+    """
+    A decoder that interprets the data as JSON
+    """
 
     def __init__(self):
         super(JSONDecoder, self).__init__()
@@ -67,9 +64,9 @@ class PickleDecoder(GreedyDecoder):
 
 
 class BZ2Decoder(Decoder):
-    '''
-	A decoder that decompresses data using the bz2 compression algorithm
-	'''
+    """
+    A decoder that decompresses data using the bz2 compression algorithm
+    """
 
     def __init__(self):
         super(BZ2Decoder, self).__init__()

@@ -59,7 +59,7 @@ class NumpyEncoder(Node):
 
     def _process(self, data):
         if not self.metadata:
-            self.metadata = NumpyMetaData( \
+            self.metadata = NumpyMetaData(
                     dtype=data.dtype, shape=data.shape[1:])
             yield self.metadata.pack()
 
@@ -104,21 +104,21 @@ class StreamingNumpyDecoder(Decoder):
 
         for chunk in chunked(flo, chunk_size):
             n_examples = len(chunk) // example_size
-            yield _np_from_buffer( \
+            yield _np_from_buffer(
                     chunk,
                     (n_examples,) + metadata.shape,
                     metadata.dtype)
             count += 1
 
         if count == 0:
-            yield _np_from_buffer( \
+            yield _np_from_buffer(
                     buffer(''),
                     (0,) + metadata.shape,
                     metadata.dtype)
 
 
 class NumpyFeature(Feature):
-    def __init__( \
+    def __init__(
             self,
             extractor,
             needs=None,
@@ -126,7 +126,7 @@ class NumpyFeature(Feature):
             key=None,
             decoder=GreedyNumpyDecoder(),
             **extractor_args):
-        super(NumpyFeature, self).__init__( \
+        super(NumpyFeature, self).__init__(
                 extractor,
                 needs=needs,
                 store=store,

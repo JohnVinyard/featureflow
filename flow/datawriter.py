@@ -51,7 +51,7 @@ class StringIODataWriter(BaseDataWriter):
             key_builder=None,
             database=None):
 
-        super(StringIODataWriter, self).__init__( \
+        super(StringIODataWriter, self).__init__(
                 needs=needs,
                 key_builder=key_builder,
                 database=database)

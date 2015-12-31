@@ -27,11 +27,6 @@ class BaseNumpyTest(object):
         if np is None:
             self.skipTest('numpy is not available')
 
-        # Registry.register(IdProvider, UuidProvider())
-        # Registry.register(KeyBuilder, StringDelimitedKeyBuilder())
-        # self._register_database()
-        # Registry.register(DataWriter, DataWriter)
-
         class Settings(PersistenceSettings):
             id_provider = UuidProvider()
             key_builder = StringDelimitedKeyBuilder()
@@ -86,7 +81,6 @@ class BaseNumpyTest(object):
 
 class GreedyNumpyTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        # Registry.register(Database, InMemoryDatabase())
         return settings_class.clone(
             database=InMemoryDatabase(key_builder=settings_class.key_builder))
 
@@ -105,8 +99,6 @@ class GreedyNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
 class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
         self._dir = TempDir()
-        # Registry.register(Database, LmdbDatabase( \
-        #         path=self._dir.path, map_size=10000000))
         return settings_class.clone(database=LmdbDatabase(
             path=self._dir.path,
             map_size=10000000,
@@ -118,7 +110,6 @@ class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
 
 class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
-        # Registry.register(Database, InMemoryDatabase())
         return settings_class.clone(
             database=InMemoryDatabase(key_builder=settings_class.key_builder))
 
@@ -138,7 +129,6 @@ class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
 class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
         self._dir = TempDir()
-        #Registry.register(Database, FileSystemDatabase(path=self._dir.path))
         return settings_class.clone(database=FileSystemDatabase(
             path=self._dir.path,
             key_builder=settings_class.key_builder))
@@ -162,8 +152,6 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
 class StreamingNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
     def _register_database(self, settings_class):
         self._dir = TempDir()
-        # Registry.register(Database, LmdbDatabase( \
-        #         path=self._dir.path, map_size=10000000))
         return settings_class.clone(database=LmdbDatabase(
             path=self._dir.path,
             map_size=10000000,

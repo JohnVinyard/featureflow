@@ -4,9 +4,9 @@ import os
 
 
 class IdProvider(object):
-    '''
+    """
     Marker class for object that returns new ids
-    '''
+    """
 
     def new_id(self):
         raise NotImplemented()
@@ -40,10 +40,10 @@ class UserSpecifiedIdProvider(IdProvider):
 
 
 class KeyBuilder(object):
-    '''
+    """
     Marker class for an algorithm to build keys
     from "document" id and feature name
-    '''
+    """
 
     def build(self, _id, feature_name):
         raise NotImplemented()
@@ -68,9 +68,9 @@ class StringDelimitedKeyBuilder(KeyBuilder):
 
 
 class Database(object):
-    '''
+    """
     Marker class for a datastore
-    '''
+    """
 
     def __init__(self, key_builder=None):
         super(Database, self).__init__()
@@ -106,10 +106,6 @@ class InMemoryDatabase(Database):
     def __init__(self, key_builder=None):
         super(InMemoryDatabase, self).__init__(key_builder=key_builder)
         self._dict = dict()
-
-    #    @property
-    #    @dependency(KeyBuilder)
-    #    def key_builder(self): pass
 
     def write_stream(self, key, content_type):
         sio = StringIO()

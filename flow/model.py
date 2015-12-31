@@ -1,76 +1,78 @@
 from extractor import Graph
-from dependency_injection import dependency
 from feature import Feature
-from data import IdProvider
+from persistence import PersistenceSettings
+
 
 class MetaModel(type):
-    
-    def __init__(self,name,bases,attrs):
-        
-        self.features = {}
-        
+
+    def __init__(cls, name, bases, attrs):
+
+        cls.features = {}
+
         for b in bases:
-            self._add_features(b.__dict__)
-        
-        self._add_features(attrs)
-        
-        super(MetaModel,self).__init__(name,bases,attrs)
-    
+            cls._add_features(b.__dict__)
+
+        cls._add_features(attrs)
+
+        super(MetaModel, cls).__init__(name, bases, attrs)
+
     def iter_features(self):
         return self.features.itervalues()
 
-    # KLUDGE: I shouldn't know about the DI code here, but
-    # this is my best idea about how to ensure that 
-    # model-level registries can be passed along to features.
-    # It's important to understand that the decorator code doesn't
-    # run until after __init__, which is too late.
-    def _on_register(self):
-        for v in self.features.itervalues():
-            try:
-                v.set_registry(self._registry)
-            except AttributeError:
-                pass
-            
-    def _add_features(self,d):
-        for k,v in d.iteritems():
-            if not isinstance(v,Feature): continue
+    def _add_features(self, d):
+        for k, v in d.iteritems():
+            if not isinstance(v, Feature):
+                continue
             v.key = k
             self.features[k] = v
-            
+
+
+class NoPersistenceSettingsError(Exception):
+    """
+    Error raised when a BaseModel-derived class is used without an accompanying
+    PersistenceSettings sub-class.
+    """
+    pass
+
+
 class BaseModel(object):
-    
+
     __metaclass__ = MetaModel
-    
-    def __init__(self,_id):
-        super(BaseModel,self).__init__()
+
+    def __init__(self, _id):
+        super(BaseModel, self).__init__()
         self._id = _id
-        
+
+    @staticmethod
+    def _ensure_persistence_settings(cls):
+        if not issubclass(cls, PersistenceSettings):
+            raise NoPersistenceSettingsError(
+                'The class {cls} is not a PersistenceSettings subclass'
+                .format(cls=cls.__name__))
+
     def __getattribute__(self, key):
         f = object.__getattribute__(self, key)
 
-        if not isinstance(f, Feature): 
+        if not isinstance(f, Feature):
             return f
 
+        BaseModel._ensure_persistence_settings(self.__class__)
         feature = getattr(self.__class__, key)
-        decoded = feature.__call__(self._id)
+        decoded = feature.__call__(self._id, persistence=self.__class__)
         setattr(self, key, decoded)
         return decoded
-    
+
     @classmethod
-    def _build_extractor(cls,_id):
+    def _build_extractor(cls, _id):
         g = Graph()
         for feature in cls.features.itervalues():
-            feature._build_extractor(_id, g)
+            feature._build_extractor(_id, g, cls)
         return g
 
-    
-    @classmethod
-    @dependency(IdProvider)
-    def id_provider(cls): pass
-    
     @classmethod
     def process(cls, **kwargs):
-        _id = cls.id_provider().new_id(**kwargs)
+        BaseModel._ensure_persistence_settings(cls)
+        _id = cls.id_provider.new_id(**kwargs)
         graph = cls._build_extractor(_id)
         graph.remove_dead_nodes(cls.features.itervalues())
         graph.process(**kwargs)

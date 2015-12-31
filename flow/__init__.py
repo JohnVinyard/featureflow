@@ -8,10 +8,10 @@ from bytestream import ByteStream,ByteStreamFeature
 
 from data import \
 IdProvider,UuidProvider,UserSpecifiedIdProvider,KeyBuilder\
-,StringDelimitedKeyBuilder,Database,DataWriter\
+,StringDelimitedKeyBuilder,Database \
 ,FileSystemDatabase,InMemoryDatabase
 
-from dependency_injection import Registry,dependency,register
+from datawriter import DataWriter
 
 from nmpy import StreamingNumpyDecoder, NumpyMetaData
 

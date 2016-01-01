@@ -61,7 +61,7 @@ class StringWithTotalLengthEncoder(Node):
     def _process(self, data):
         if not self._metadata_written:
             yield struct.pack('I', data.total_length)
-            self._metadata_written
+            self._metadata_written = True
         yield data
 
 
@@ -72,7 +72,7 @@ class StringWithTotalLengthDecoder(Decoder):
         self._total_length = None
 
     def __call__(self, flo):
-        return self.__iter__()
+        return self.__iter__(flo)
 
     def __iter__(self, flo):
         self._total_length = struct.unpack('I', flo.read(4))[0]

@@ -6,7 +6,7 @@ from extractor import NotEnoughData, Aggregator, Node
 from model import BaseModel, NoPersistenceSettingsError
 from feature import Feature, JSONFeature, CompressedFeature
 from data import *
-from bytestream import ByteStream
+from bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
 from util import chunked
 from lmdbstore import LmdbDatabase
@@ -262,6 +262,22 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_can_decode_bytestream_feature(self):
+
+        class Doc(BaseModel, self.Settings):
+            raw = ByteStreamFeature(ByteStream, chunksize=3, store=True)
+
+        class HasUri(object):
+            def __init__(self, uri):
+                super(HasUri, self).__init__()
+                self.uri = uri
+
+        text = data_source['mary']
+        _id = Doc.process(raw=HasUri(BytesIO(text)))
+        doc = Doc(_id)
+        self.assertEqual(text, ''.join(doc.raw))
+
     def test_can_use_alternate_decoder_for_stored_feature(self):
         class Doc(Document2, self.Settings):
             pass

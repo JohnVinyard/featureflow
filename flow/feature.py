@@ -131,7 +131,7 @@ class Feature(object):
             try:
                 kwargs[k] = extractor._reader
             except AttributeError:
-                kwargs[k] = self.reader(_id, k)
+                kwargs[k] = self.reader(_id, k, persistence)
 
         graph.process(**kwargs)
         if stream is None:

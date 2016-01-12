@@ -6,25 +6,25 @@ from persistence import PersistenceSettings
 class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
-
         cls.features = {}
-
-        for b in bases:
-            cls._add_features(b.__dict__)
-
-        cls._add_features(attrs)
-
+        cls._add_features(cls.features)
         super(MetaModel, cls).__init__(name, bases, attrs)
 
     def iter_features(self):
         return self.features.itervalues()
 
-    def _add_features(self, d):
-        for k, v in d.iteritems():
+    def _add_features(cls, features):
+        for k, v in cls.__dict__.iteritems():
             if not isinstance(v, Feature):
                 continue
             v.key = k
-            self.features[k] = v
+            features[k] = v
+
+        for b in cls.__bases__:
+            try:
+                b._add_features(features)
+            except AttributeError:
+                pass
 
 
 class NoPersistenceSettingsError(Exception):

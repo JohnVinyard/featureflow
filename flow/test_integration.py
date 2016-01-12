@@ -39,6 +39,12 @@ class TextStream(Node):
             yield chunk
 
 
+class Echo(Node):
+
+    def __init__(self, needs=None):
+        super(Echo, self).__init__(needs=needs)
+
+
 class Counter(Node):
     Count = 0
 
@@ -48,10 +54,10 @@ class Counter(Node):
 
 
 class Dam(Aggregator, Node):
-    '''
-	Gather input until all has been received, and then dole it out in small
-	chunks
-	'''
+    """
+    Gather input until all has been received, and then dole it out in small
+    chunks
+    """
 
     def __init__(self, chunksize=3, needs=None):
         super(Dam, self).__init__(needs=needs)
@@ -262,6 +268,41 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_can_retrieve_feature_with_deep_inheritance_hierarchy(self):
+
+        class D1(BaseModel):
+            stream = Feature(TextStream, store=False)
+            echo = Feature(Echo, needs=stream, store=True)
+
+        class D2(D1):
+            words = Feature(Tokenizer, needs=D1.stream, store=True)
+
+        class D3(D2):
+            count = JSONFeature(WordCount, needs=D2.words, store=True)
+
+        class Document(D3, self.Settings):
+            pass
+
+        _id = Document.process(stream='mary')
+        doc = Document(_id)
+        self.assertEqual(data_source['mary'], doc.echo.read())
+
+    def test_features_are_inherited(self):
+
+        class D1(BaseModel):
+            stream = Feature(TextStream, store=True)
+
+        class D2(D1):
+            words = Feature(Tokenizer, needs=D1.stream, store=True)
+
+        class D3(D2):
+            count = JSONFeature(WordCount, needs=D2.words, store=True)
+
+        class Document(D3, self.Settings):
+            pass
+
+        self.assertTrue('stream' in Document.features)
 
     def test_can_decode_bytestream_feature(self):
 

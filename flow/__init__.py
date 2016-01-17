@@ -14,7 +14,7 @@ from data import \
 
 from datawriter import DataWriter
 
-from nmpy import StreamingNumpyDecoder, NumpyMetaData
+from nmpy import StreamingNumpyDecoder, NumpyMetaData, NumpyFeature
 
 from database_iterator import DatabaseIterator
 

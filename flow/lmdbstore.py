@@ -97,6 +97,18 @@ class LmdbDatabase(Database):
         # transaction is complete?
         return ReadStream(buf)
 
+    def size(self, key):
+        _id, db = self._get_read_db(key)
+        with self.env.begin(buffers=True) as txn:
+            buf = txn.get(_id, db=db)
+
+        if buf is None:
+            raise KeyError(key)
+
+        # POSSIBLE BUG:  Is it safe to keep the buffer around after the
+        # transaction is complete?
+        return len(buf)
+
     def iter_ids(self):
         db = self.dbs.values()[0]
         with self.env.begin() as txn:

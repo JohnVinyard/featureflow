@@ -84,13 +84,16 @@ class Database(object):
     # TODO: Maybe this should just be open(), since it returns a file-like
     # object
     def read_stream(self, key):
-        raise NotImplemented()
+        raise NotImplementedError()
+
+    def size(self, key):
+        raise NotImplementedError()
 
     def iter_ids(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def __contains__(self, key):
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class IOWithLength(StringIO):
@@ -123,6 +126,9 @@ class InMemoryDatabase(Database):
     def read_stream(self, key):
         return IOWithLength(self._dict[key])
 
+    def size(self, key):
+        return len(self._dict[key])
+
     def iter_ids(self):
         seen = set()
         for key in self._dict.iterkeys():
@@ -148,6 +154,13 @@ class FileSystemDatabase(Database):
         try:
             return open(os.path.join(self._path, key), 'rb')
         except IOError:
+            raise KeyError(key)
+
+    def size(self, key):
+        path = os.path.join(self._path, key)
+        try:
+            return os.stat(path).st_size
+        except OSError:
             raise KeyError(key)
 
     def iter_ids(self):

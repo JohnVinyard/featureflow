@@ -269,6 +269,27 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 
+    def test_can_get_size_in_bytes_of_key(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        _id = D.process(stream='mary')
+        key = self.Settings.key_builder.build(_id, D.stream.key)
+        self.assertEqual(
+            len(data_source['mary']), self.Settings.database.size(key))
+
+    def test_key_error_if_asking_for_size_of_unknown_key(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        _id = D.process(stream='mary')
+        key = self.Settings.key_builder.build(_id, 'something')
+        self.assertRaises(KeyError, lambda: self.Settings.database.size(key))
+
     def test_can_retrieve_feature_with_deep_inheritance_hierarchy(self):
 
         class D1(BaseModel):

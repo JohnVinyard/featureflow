@@ -39,8 +39,17 @@ class TextStream(Node):
             yield chunk
 
 
-class Echo(Node):
+class MaryTextStream(Node):
+    def __init__(self, needs=None):
+        super(MaryTextStream, self).__init__(needs=needs)
 
+    def _process(self, data):
+        flo = StringIO(data_source['mary'])
+        for chunk in chunked(flo, chunksize=3):
+            yield chunk
+
+
+class Echo(Node):
     def __init__(self, needs=None):
         super(Echo, self).__init__(needs=needs)
 
@@ -268,7 +277,6 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
-
     def test_can_get_size_in_bytes_of_key(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
@@ -278,7 +286,7 @@ class BaseTest(object):
         _id = D.process(stream='mary')
         key = self.Settings.key_builder.build(_id, D.stream.key)
         self.assertEqual(
-            len(data_source['mary']), self.Settings.database.size(key))
+                len(data_source['mary']), self.Settings.database.size(key))
 
     def test_key_error_if_asking_for_size_of_unknown_key(self):
         class D(BaseModel, self.Settings):
@@ -291,7 +299,6 @@ class BaseTest(object):
         self.assertRaises(KeyError, lambda: self.Settings.database.size(key))
 
     def test_can_retrieve_feature_with_deep_inheritance_hierarchy(self):
-
         class D1(BaseModel):
             stream = Feature(TextStream, store=False)
             echo = Feature(Echo, needs=stream, store=True)
@@ -310,7 +317,6 @@ class BaseTest(object):
         self.assertEqual(data_source['mary'], doc.echo.read())
 
     def test_features_are_inherited(self):
-
         class D1(BaseModel):
             stream = Feature(TextStream, store=True)
 
@@ -326,7 +332,6 @@ class BaseTest(object):
         self.assertTrue('stream' in Document.features)
 
     def test_can_decode_bytestream_feature(self):
-
         class Doc(BaseModel, self.Settings):
             raw = ByteStreamFeature(ByteStream, chunksize=3, store=True)
 
@@ -725,6 +730,7 @@ class BaseTest(object):
         _id = Numbers.process(stream='numbers')
         doc = Numbers(_id)
         self.assertEqual('2468101214161820', doc.sumup.read())
+
 
     def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
         class Doc3(BaseModel, self.Settings):

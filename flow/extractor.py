@@ -133,10 +133,10 @@ class Node(object):
 
 
 class Aggregator(object):
-    '''
+    """
     A mixin for Node-derived classes that addresses the case when the processing
     node cannot do its computation until all input has been received
-    '''
+    """
 
     def __init__(self, needs=None):
         super(Aggregator, self).__init__(needs=needs)
@@ -148,10 +148,10 @@ class Aggregator(object):
 
 
 class NotEnoughData(Exception):
-    '''
-    Exception thrown by extractors when they do not yet have enough data to 
+    """
+    Exception thrown by extractors when they do not yet have enough data to
     execute the processing step
-    '''
+    """
     pass
 
 
@@ -204,6 +204,7 @@ class Graph(dict):
                     .format(kw=kwargs.keys(), r=roots.keys()))
 
         graph_args = dict((k, kwargs[k]) for k in intersection)
+        print graph_args
 
         subscriptions = self.subscriptions()
         queue = deque()

@@ -204,7 +204,6 @@ class Graph(dict):
                     .format(kw=kwargs.keys(), r=roots.keys()))
 
         graph_args = dict((k, kwargs[k]) for k in intersection)
-        print graph_args
 
         subscriptions = self.subscriptions()
         queue = deque()

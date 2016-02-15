@@ -43,7 +43,7 @@ class StaticIdProvider(IdProvider):
     def __init__(self, key):
         self.key = key
 
-    def new_id(self):
+    def new_id(self, **kwargs):
         return self.key
 
 

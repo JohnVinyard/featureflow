@@ -625,6 +625,34 @@ class BaseTest(object):
         doc = DocumentWordCount(_id3)
         self.assertEqual(3, doc.total_count['a'])
 
+    def test_can_use_single_document_database_for_aggregate_feature(self):
+        class Doc(Document, self.Settings):
+            pass
+
+        class SingleDocumentDatabaseSettings(PersistenceSettings):
+            _id = 'static'
+            id_provider = StaticIdProvider(_id)
+            key_builder = StringDelimitedKeyBuilder()
+            database = InMemoryDatabase(key_builder=key_builder)
+
+        class DocumentWordCount(BaseModel, SingleDocumentDatabaseSettings):
+            counts = Feature(
+                    FeatureAggregator,
+                    cls=Doc,
+                    feature=Doc.count,
+                    store=False)
+
+            total_count = JSONFeature(
+                    WordCountAggregator,
+                    store=True,
+                    needs=counts)
+
+        Doc.process(stream='mary')
+        Doc.process(stream='humpty')
+        DocumentWordCount.process(counts=self.Settings.database)
+        doc = DocumentWordCount()
+        self.assertEqual(3, doc.total_count['a'])
+
     def test_document_with_multiple_roots(self):
         class Doc(MultipleRoots, self.Settings):
             pass

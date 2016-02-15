@@ -8,9 +8,9 @@ from extractor import Node, Graph, Aggregator, NotEnoughData
 from bytestream import ByteStream, ByteStreamFeature
 
 from data import \
-    IdProvider, UuidProvider, UserSpecifiedIdProvider, KeyBuilder \
-    , StringDelimitedKeyBuilder, Database \
-    , FileSystemDatabase, InMemoryDatabase
+    IdProvider, UuidProvider, UserSpecifiedIdProvider, StaticIdProvider, \
+    KeyBuilder, StringDelimitedKeyBuilder, Database, FileSystemDatabase, \
+    InMemoryDatabase
 
 from datawriter import DataWriter
 

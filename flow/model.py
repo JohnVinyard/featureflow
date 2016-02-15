@@ -4,7 +4,6 @@ from persistence import PersistenceSettings
 
 
 class MetaModel(type):
-
     def __init__(cls, name, bases, attrs):
         cls.features = {}
         cls._add_features(cls.features)
@@ -36,19 +35,19 @@ class NoPersistenceSettingsError(Exception):
 
 
 class BaseModel(object):
-
     __metaclass__ = MetaModel
 
-    def __init__(self, _id):
+    def __init__(self, _id=None):
         super(BaseModel, self).__init__()
-        self._id = _id
+        if _id:
+            self._id = _id
 
     @staticmethod
     def _ensure_persistence_settings(cls):
         if not issubclass(cls, PersistenceSettings):
             raise NoPersistenceSettingsError(
-                'The class {cls} is not a PersistenceSettings subclass'
-                .format(cls=cls.__name__))
+                    'The class {cls} is not a PersistenceSettings subclass'
+                        .format(cls=cls.__name__))
 
     def __getattribute__(self, key):
         f = object.__getattribute__(self, key)

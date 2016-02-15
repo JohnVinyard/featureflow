@@ -39,6 +39,14 @@ class UserSpecifiedIdProvider(IdProvider):
         return kwargs[self._key]
 
 
+class StaticIdProvider(IdProvider):
+    def __init__(self, key):
+        self.key = key
+
+    def new_id(self):
+        return self.key
+
+
 class KeyBuilder(object):
     """
     Marker class for an algorithm to build keys
@@ -58,7 +66,7 @@ class StringDelimitedKeyBuilder(KeyBuilder):
         self._seperator = seperator
 
     def build(self, _id, feature_name):
-        return '{_id}{sep}{feature}'.format( \
+        return '{_id}{sep}{feature}'.format(
                 _id=_id,
                 sep=self._seperator,
                 feature=feature_name)
@@ -142,7 +150,6 @@ class InMemoryDatabase(Database):
 
 
 class FileSystemDatabase(Database):
-
     def __init__(self, path=None, key_builder=None):
         super(FileSystemDatabase, self).__init__(key_builder=key_builder)
         self._path = path

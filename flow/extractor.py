@@ -9,12 +9,10 @@ class Node(object):
         self._cache = None
         self._listeners = []
 
-        if needs is None:
-            self._needs = []
-        elif isinstance(needs, Node):
-            self._needs = [needs]
-        else:
-            self._needs = needs
+        try:
+            self._needs = list(needs)
+        except TypeError:
+            self._needs = [] if needs is None else [needs]
 
         for n in self._needs:
             n.add_listener(self)

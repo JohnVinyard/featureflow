@@ -715,6 +715,17 @@ class BaseTest(object):
         doc = Numbers(_id)
         self.assertEqual('2468101214161820', doc.sumup.read())
 
+    def test_feature_with_multiple_inputs_using_a_tuple(self):
+        class Numbers(BaseModel, self.Settings):
+            stream = Feature(NumberStream, store=False)
+            add1 = Feature(Add, needs=stream, store=False, rhs=1)
+            add2 = Feature(Add, needs=stream, store=False, rhs=1)
+            sumup = Feature(SumUp, needs=(add1, add2), store=True)
+
+        _id = Numbers.process(stream='numbers')
+        doc = Numbers(_id)
+        self.assertEqual('2468101214161820', doc.sumup.read())
+
     def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
         class Doc3(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

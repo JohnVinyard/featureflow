@@ -25,12 +25,10 @@ class Feature(object):
         self.store = store
         self.encoder = encoder or IdentityEncoder
 
-        if needs is None:
-            self.needs = []
-        elif isinstance(needs, list):
-            self.needs = needs
-        else:
-            self.needs = [needs]
+        try:
+            self.needs = list(needs)
+        except TypeError:
+            self.needs = [] if needs is None else [needs]
 
         self.decoder = decoder or Decoder()
         self.extractor_args = extractor_args

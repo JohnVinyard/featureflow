@@ -14,8 +14,6 @@ from data import \
 
 from datawriter import DataWriter
 
-from nmpy import StreamingNumpyDecoder, NumpyMetaData, NumpyFeature
-
 from database_iterator import DatabaseIterator
 
 from encoder import IdentityEncoder
@@ -25,3 +23,8 @@ from decoder import Decoder
 from lmdbstore import LmdbDatabase
 
 from persistence import PersistenceSettings
+
+try:
+    from nmpy import StreamingNumpyDecoder, NumpyMetaData, NumpyFeature
+except ImportError:
+    pass

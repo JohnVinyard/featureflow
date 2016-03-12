@@ -52,10 +52,14 @@ class BZ2Encoder(Node):
     def _finalize(self, pusher):
         self._cache = ''
 
+    def _first_chunk(self, data):
+        self._compressor = bz2.BZ2Compressor()
+        return data
+
+    def _last_chunk(self):
+        yield self._compressor.flush()
+
     def _process(self, data):
-        if self._compressor is None:
-            self._compressor = bz2.BZ2Compressor()
         compressed = self._compressor.compress(data)
-        if compressed: yield compressed
-        if self._finalized:
-            yield self._compressor.flush()
+        if compressed:
+            yield compressed

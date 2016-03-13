@@ -43,7 +43,7 @@ import requests
 if __name__ == '__main__':
     req = requests.Request(
             method='GET',
-            url='http://textfiles.com/politics/ablwrk.sng')
+            url='http://www.something.com/something.txt')
     HasUri = namedtuple('HasUri', ['uri'])
     _id = Document.process(raw=HasUri(uri=req))
     doc = Document(_id)
@@ -54,6 +54,8 @@ Your code focuses on data transformations, and leaves orchestration and persiste
 up to featureflow:
 
 ```python
+import featureflow as ff
+
 class Tokenizer(ff.Node):
     def __init__(self, needs=None):
         super(Tokenizer, self).__init__(needs=needs)

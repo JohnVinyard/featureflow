@@ -48,7 +48,7 @@ class StringWithTotalLength(str):
         return o
 
     def __radd__(self, other):
-        return StringWithTotalLength(self + other, self.total_length)
+        return StringWithTotalLength(other + str(self), self.total_length)
 
 
 class StringWithTotalLengthEncoder(Node):

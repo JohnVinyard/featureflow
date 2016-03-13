@@ -12,13 +12,13 @@ def read(fname):
 
 
 setup(
-    name='featureflow',
-    version='0.2',
-    url='https://github.com/JohnVinyard/featureflow',
-    author='John Vinyard',
-    author_email='john.vinyard@gmail.com',
-    long_description=read('README.md'),
-    packages=['featureflow'],
-    download_url = 'https://github.com/jvinyard/featureflow/tarball/0.2',
-    install_requires=['nose', 'unittest2', 'requests', 'lmdb']
+        name='featureflow',
+        version='0.3',
+        url='https://github.com/JohnVinyard/featureflow',
+        author='John Vinyard',
+        author_email='john.vinyard@gmail.com',
+        long_description=read('README.md'),
+        packages=['featureflow'],
+        download_url='https://github.com/jvinyard/featureflow/tarball/0.3',
+        install_requires=['nose', 'unittest2', 'requests', 'lmdb']
 )

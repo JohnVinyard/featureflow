@@ -21,5 +21,8 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy=1.10
   - source activate test-environment
   - python setup.py install
+  - pip install coveralls
 script:
-  nosetests
+  nosetests  --with-coverage --cover-package=featureflow
+after_success:
+  coveralls

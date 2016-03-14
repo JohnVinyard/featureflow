@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/JohnVinyard/featureflow.svg?branch=master)](https://travis-ci.org/JohnVinyard/featureflow)
+[![Coverage Status](https://coveralls.io/repos/github/JohnVinyard/featureflow/badge.svg?branch=master)](https://coveralls.io/github/JohnVinyard/featureflow?branch=master)
+
 # featureflow
 featureflow is a python library that allows users to build feature extraction pipelines in a declarative way, and store the results for later use
 

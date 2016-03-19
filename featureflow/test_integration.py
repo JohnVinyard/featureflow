@@ -2,7 +2,7 @@ import unittest2
 from collections import defaultdict
 import random
 
-from extractor import NotEnoughData, Aggregator, Node
+from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
 from model import BaseModel, NoPersistenceSettingsError
 from feature import Feature, JSONFeature, CompressedFeature
 from data import *
@@ -96,6 +96,27 @@ class ToLower(Node):
 
     def _process(self, data):
         yield data.lower()
+
+
+class CharacterCountNonGeneratorProcessMethod(Node):
+    def __init__(self, needs=None):
+        super(CharacterCountNonGeneratorProcessMethod, self).__init__(
+                needs=needs)
+
+    def _process(self, data):
+        return len(data)
+
+
+class Total(Aggregator, Node):
+    def __init__(self, needs=None):
+        super(Total, self).__init__(needs=needs)
+        self._cache = 0
+
+    def _enqueue(self, data, pusher):
+        self._cache += data
+
+    def _process(self, data):
+        yield data
 
 
 class TheLastWord(Node):
@@ -277,6 +298,18 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_graph_including_non_generator_process_method_raises(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            length = Feature(
+                    CharacterCountNonGeneratorProcessMethod,
+                    needs=stream,
+                    store=True)
+            total = Feature(Total, needs=length, store=True)
+
+        self.assertRaises(
+                InvalidProcessMethod, lambda: D.process(stream='mary'))
+
     def test_can_get_size_in_bytes_of_key(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
@@ -758,7 +791,6 @@ class BaseTest(object):
         _id = Numbers.process(stream='numbers')
         doc = Numbers(_id)
         self.assertEqual('2468101214161820', doc.sumup.read())
-
 
     def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
         class Doc3(BaseModel, self.Settings):

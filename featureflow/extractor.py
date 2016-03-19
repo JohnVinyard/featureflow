@@ -1,11 +1,26 @@
 from itertools import izip_longest
 import contextlib
 from collections import deque, defaultdict
+import inspect
+
+
+class InvalidProcessMethod(Exception):
+    """
+    Exception thrown when the _process method of an Node is not a generator
+    """
+
+    def __init__(self, cls):
+        msg = '{name}._process method must be a generator' \
+            .format(name=cls.__name__)
+        super(InvalidProcessMethod, self).__init__(msg)
 
 
 class Node(object):
     def __init__(self, needs=None):
         super(Node, self).__init__()
+        if not inspect.isgeneratorfunction(self._process):
+            raise InvalidProcessMethod(self.__class__)
+
         self._cache = None
         self._listeners = []
 
@@ -198,10 +213,10 @@ class Graph(dict):
         intersection = set(kwargs.keys()) & set(roots.keys())
         if len(intersection) < len(roots):
             raise KeyError(
-                (
-                    'the keys {kw} were provided to the process() method, but the' \
-                    + ' keys for the root extractors were {r}') \
-                    .format(kw=kwargs.keys(), r=roots.keys()))
+                    (
+                        'the keys {kw} were provided to the process() method, but the' \
+                        + ' keys for the root extractors were {r}') \
+                        .format(kw=kwargs.keys(), r=roots.keys()))
 
         graph_args = dict((k, kwargs[k]) for k in intersection)
 

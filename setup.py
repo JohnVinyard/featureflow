@@ -1,4 +1,5 @@
 from setuptools import setup
+import re
 
 try:
     import pypandoc
@@ -6,7 +7,11 @@ try:
 except(IOError, ImportError):
     long_description = open('README.md').read()
 
-version = '0.4'
+with open('featureflow/__init__.py', 'r') as fd:
+    version = re.search(
+            r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+            fd.read(),
+            re.MULTILINE).group(1)
 
 download_url = 'https://github.com/jvinyard/featureflow/tarball/{version}'\
     .format(**locals())

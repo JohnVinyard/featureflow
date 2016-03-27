@@ -89,7 +89,7 @@ class WordCount(ff.Aggregator, ff.Node):
 
 # Installation
 
-Python headers are required.
+Python headers are required.  You can install by running:
 
 ```bash
 apt-get install python-dev

@@ -1,24 +1,24 @@
-import os
 from setuptools import setup
 
+try:
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
+except(IOError, ImportError):
+    long_description = open('README.md').read()
 
-def read(fname):
-    """
-    This is yanked from the setuptools documentation at
-    http://packages.python.org/an_example_pypi_project/setuptools.html. It is
-    used to read the text from the README file.
-    """
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+version = '0.4'
 
+download_url = 'https://github.com/jvinyard/featureflow/tarball/{version}'\
+    .format(**locals())
 
 setup(
         name='featureflow',
-        version='0.3',
+        version=version,
         url='https://github.com/JohnVinyard/featureflow',
         author='John Vinyard',
         author_email='john.vinyard@gmail.com',
-        long_description=read('README.md'),
+        long_description=long_description,
         packages=['featureflow'],
-        download_url='https://github.com/jvinyard/featureflow/tarball/0.3',
+        download_url=download_url,
         install_requires=['nose', 'unittest2', 'requests', 'lmdb']
 )

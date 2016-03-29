@@ -2,7 +2,8 @@ from extractor import Node
 from decoder import Decoder
 from feature import Feature
 from util import chunked
-from requests import Session
+import requests
+from urlparse import urlparse
 import os
 import struct
 
@@ -12,10 +13,24 @@ class ByteStream(Node):
         super(ByteStream, self).__init__(needs=needs)
         self._chunksize = chunksize
 
+    def _handle_simple_get(self, data):
+        parsed = urlparse(data)
+        print parsed
+        if parsed.scheme and parsed.netloc:
+            resp = requests.get(data, stream=True)
+            print resp
+            resp.raise_for_status()
+            content_length = int(resp.headers['Content-Length'])
+            for chunk in chunked(resp.raw, chunksize=self._chunksize):
+                yield StringWithTotalLength(chunk, content_length)
+        else:
+            raise ValueError
+
     def _handle_http_request(self, data):
-        s = Session()
+        s = requests.Session()
         prepped = data.prepare()
         resp = s.send(prepped, stream=True)
+        resp.raise_for_status()
         content_length = int(resp.headers['Content-Length'])
         for chunk in chunked(resp.raw, chunksize=self._chunksize):
             yield StringWithTotalLength(chunk, content_length)
@@ -33,6 +48,13 @@ class ByteStream(Node):
                 yield StringWithTotalLength(chunk, content_length)
 
     def _process(self, data):
+        try:
+            for chunk in self._handle_simple_get(data):
+                yield chunk
+            return
+        except (AttributeError, ValueError):
+            pass
+
         try:
             for chunk in self._handle_http_request(data.uri):
                 yield chunk

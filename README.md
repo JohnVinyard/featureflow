@@ -41,14 +41,8 @@ class Document(ff.BaseModel, ff.PersistenceSettings):
 You can process a text document, and access the results:
 
 ```python
-import requests
-
 if __name__ == '__main__':
-    req = requests.Request(
-            method='GET',
-            url='http://www.something.com/something.txt')
-    HasUri = namedtuple('HasUri', ['uri'])
-    _id = Document.process(raw=HasUri(uri=req))
+    _id = Document.process(raw='http://www.something.com/something.txt')
     doc = Document(_id)
     print '"workers" appears {workers} times'.format(**doc.counts)
 ```

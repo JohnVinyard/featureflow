@@ -1,6 +1,10 @@
 import unittest2
 from collections import defaultdict
 import random
+from requests.exceptions import HTTPError
+import subprocess
+import sys
+import time
 
 from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
 from model import BaseModel, NoPersistenceSettingsError
@@ -309,6 +313,25 @@ class BaseTest(object):
 
         self.assertRaises(
                 InvalidProcessMethod, lambda: D.process(stream='mary'))
+
+    def test_can_use_string_for_remote_url(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(ByteStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+        try:
+            devnull = open(os.devnull, 'w')
+            p = subprocess.Popen(
+                    [sys.executable, '-m', 'SimpleHTTPServer', '9765'],
+                    stdout=devnull,
+                    stderr=devnull)
+            time.sleep(0.25)
+            url = 'http://localhost:9765/{path}'.format(path=uuid4().hex)
+            self.assertRaises(
+                    HTTPError,
+                    lambda: D.process(stream=url))
+        finally:
+            p.kill()
 
     def test_can_get_size_in_bytes_of_key(self):
         class D(BaseModel, self.Settings):

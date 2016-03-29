@@ -15,10 +15,8 @@ class ByteStream(Node):
 
     def _handle_simple_get(self, data):
         parsed = urlparse(data)
-        print parsed
         if parsed.scheme and parsed.netloc:
             resp = requests.get(data, stream=True)
-            print resp
             resp.raise_for_status()
             content_length = int(resp.headers['Content-Length'])
             for chunk in chunked(resp.raw, chunksize=self._chunksize):

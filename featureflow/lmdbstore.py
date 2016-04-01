@@ -120,7 +120,11 @@ class LmdbDatabase(Database):
         return len(buf)
 
     def iter_ids(self):
-        db = self.dbs.values()[0]
+        try:
+            db = self.dbs.values()[0]
+        except IndexError:
+            return
+        
         with self.env.begin() as txn:
             cursor = txn.cursor(db)
             for _id in cursor.iternext(keys=True, values=False):

@@ -1,6 +1,7 @@
 import lmdb
 from data import Database
 from io import BytesIO
+import os
 
 
 class WriteStream(object):
@@ -37,15 +38,24 @@ class ReadStream(object):
     def __exit__(self, t, value, traceback):
         pass
 
-    def seek(self, pos, whence=0):
-        # BUG: What about whence argument
-        self.pos = pos
+    def tell(self):
+        return self.pos
+
+    def seek(self, pos, whence=os.SEEK_SET):
+        if whence == os.SEEK_SET:
+            self.pos = pos
+        elif whence == os.SEEK_END:
+            self.pos = max(0, len(self.buf) + pos)
+        elif whence == os.SEEK_CUR:
+            self.pos += pos
+        else:
+            raise IOError
 
     def read(self, nbytes=None):
         if nbytes is None:
             nbytes = len(self.buf)
         v = buffer(self.buf, self.pos, nbytes)
-        self.pos += nbytes
+        self.pos += len(v)
         # KLUDGE: This negates most of the benefit of returning pointers
         # directly to the memory-mapped data, because it creates a copy.
         # Is there any way to treat this as a string/bytes without copying

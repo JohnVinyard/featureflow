@@ -40,6 +40,12 @@ class BytestreamTests(unittest2.TestCase):
                 method='GET',
                 url=self.local_url())
 
+    def test_throws_on_zero_length_stream(self):
+        with tempfile.NamedTemporaryFile('w+') as tf:
+            tf.write('')
+            tf.seek(0)
+            self.assertRaises(ValueError, lambda: self.results(tf.name))
+
     def test_can_use_local_file(self):
         with tempfile.NamedTemporaryFile('w+') as tf:
             tf.write(self.expected)

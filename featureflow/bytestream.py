@@ -14,6 +14,8 @@ class ByteStream(Node):
         self._chunksize = chunksize
 
     def _generator(self, stream, content_length):
+        if not content_length:
+            raise ValueError('content_length should be greater than zero')
         for chunk in chunked(stream, chunksize=self._chunksize):
             yield StringWithTotalLength(chunk, content_length)
 

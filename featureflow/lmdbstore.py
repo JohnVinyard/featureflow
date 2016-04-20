@@ -124,7 +124,7 @@ class LmdbDatabase(Database):
             db = self.dbs.values()[0]
         except IndexError:
             return
-        
+
         with self.env.begin() as txn:
             cursor = txn.cursor(db)
             for _id in cursor.iternext(keys=True, values=False):

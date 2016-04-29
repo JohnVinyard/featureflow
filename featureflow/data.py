@@ -33,6 +33,8 @@ class IntegerIdProvider(IdProvider):
 class UserSpecifiedIdProvider(IdProvider):
     def __init__(self, key=None):
         super(UserSpecifiedIdProvider, self).__init__()
+        if not key:
+            raise ValueError('key must be provided')
         self._key = key
 
     def new_id(self, **kwargs):

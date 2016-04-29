@@ -1,5 +1,5 @@
 import unittest2
-from data import InMemoryDatabase
+from data import InMemoryDatabase, UserSpecifiedIdProvider
 
 
 class InMemoryDatabaseTest(unittest2.TestCase):
@@ -29,3 +29,8 @@ class InMemoryDatabaseTest(unittest2.TestCase):
         self.set('key', 'test data2')
         rs = self.get('key')
         self.assertEqual('test data2', rs.read())
+
+
+class UserSpecifiedIdProviderTest(unittest2.TestCase):
+    def test_raises_when_no_key_is_provided(self):
+        self.assertRaises(ValueError, lambda: UserSpecifiedIdProvider())

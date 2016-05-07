@@ -10,18 +10,34 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def setUp(self):
         self.path = '/tmp/{dir}'.format(dir=uuid4().hex)
         self.key_builder = StringDelimitedKeyBuilder()
-        self.db = LmdbDatabase(
-                self.path,
-                key_builder=self.key_builder)
+        self.init_database()
         self.value = os.urandom(1000)
         self.key = self.key_builder.build('id', 'feature')
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
 
+    def init_database(self):
+        self.db = LmdbDatabase(
+                self.path,
+                key_builder=self.key_builder)
+
     def write_key(self):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
             ws.write(self.value)
+
+    def test_can_iter_ids_immediately_after_opening(self):
+        self.write_key()
+        self.assertEqual(1, len(list(self.db.iter_ids())))
+        with self.db.read_stream(self.key) as rs:
+            value = rs.read()
+            self.assertEqual(1000, len(value))
+        self.db.env.close()
+        self.init_database()
+        self.assertEqual(1, len(list(self.db.iter_ids())))
+        with self.db.read_stream(self.key) as rs:
+            value = rs.read()
+            self.assertEqual(1000, len(value))
 
     def test_can_seek_to_beginning_of_value(self):
         self.write_key()

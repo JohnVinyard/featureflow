@@ -73,8 +73,12 @@ class LmdbDatabase(Database):
                 map_size=map_size,
                 writemap=True,
                 map_async=True,
-                metasync=False)
+                metasync=True)
         self.dbs = dict()
+        with self.env.begin() as txn:
+            cursor = txn.cursor()
+            for feature in cursor.iternext(keys=True, values=False):
+                self.dbs[feature] = self.env.open_db(feature)
 
     def _get_db(self, key):
         _id, feature = self.key_builder.decompose(key)

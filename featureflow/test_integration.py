@@ -36,8 +36,11 @@ class TextStream(Node):
     def _process(self, data):
         try:
             flo = StringIO(data_source[data])
-        except KeyError:
-            flo = StringIO(data)
+        except KeyError as e:
+            if isinstance(data, str):
+                flo = StringIO(data)
+            else:
+                raise e
 
         for chunk in chunked(flo, chunksize=self._chunksize):
             yield chunk
@@ -302,6 +305,22 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_keys_are_removed_when_exception_is_thrown_during_processing(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        _id1 = D.process(stream='mary')
+        try:
+            D.process(stream=10)
+        except KeyError:
+            pass
+
+        _ids = list(self.Settings.database.iter_ids())
+        self.assertTrue(_id1 in _ids)
+        self.assertEqual(1, len(_ids))
+
     def test_graph_including_non_generator_process_method_raises(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
@@ -319,6 +338,7 @@ class BaseTest(object):
             stream = Feature(ByteStream, store=True)
             words = Feature(Tokenizer, needs=stream, store=False)
             count = JSONFeature(WordCount, needs=words, store=True)
+
         try:
             devnull = open(os.devnull, 'w')
             p = subprocess.Popen(

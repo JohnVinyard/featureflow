@@ -138,3 +138,11 @@ class LmdbDatabase(Database):
         with self.env.begin(buffers=True) as txn:
             buf = txn.get(_id, db=db)
         return buf is not None
+
+    def __delitem__(self, key):
+        try:
+            _id, db = self._get_read_db(key)
+        except KeyError:
+            return
+        with self.env.begin(write=True) as txn:
+            txn.delete(_id, db=db)

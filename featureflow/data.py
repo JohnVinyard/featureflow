@@ -105,6 +105,9 @@ class Database(object):
     def __contains__(self, key):
         raise NotImplementedError()
 
+    def __delitem__(self, key):
+        raise NotImplementedError()
+
 
 class IOWithLength(StringIO):
     def __init__(self, content):
@@ -150,6 +153,9 @@ class InMemoryDatabase(Database):
     def __contains__(self, key):
         return key in self._dict
 
+    def __delitem__(self, key):
+        del self._dict[key]
+
 
 class FileSystemDatabase(Database):
     def __init__(self, path=None, key_builder=None):
@@ -184,3 +190,7 @@ class FileSystemDatabase(Database):
     def __contains__(self, key):
         path = os.path.join(self._path, key)
         return os.path.exists(path)
+
+    def __delitem__(self, key):
+        path = os.path.join(self._path, key)
+        os.remove(path)

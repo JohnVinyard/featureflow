@@ -102,6 +102,9 @@ class Database(object):
     def iter_ids(self):
         raise NotImplementedError()
 
+    def __iter__(self):
+        return self.iter_ids()
+
     def __contains__(self, key):
         raise NotImplementedError()
 

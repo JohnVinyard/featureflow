@@ -306,6 +306,19 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_can_iterate_over_database(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        D.process(stream='mary')
+        D.process(stream='humpty')
+        D.process(stream='cased')
+
+        self.assertEqual(3, len(list(self.Settings.database)))
+
     def test_can_use_iterator_node(self):
         iterable = chunked(StringIO(data_source['mary']), chunksize=3)
 

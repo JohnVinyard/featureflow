@@ -2,10 +2,9 @@ from extractor import Node
 
 
 class IteratorNode(Node):
-    def __init__(self, iterable=None, needs=None):
-        self.iterable = iterable
+    def __init__(self, needs=None):
         super(IteratorNode, self).__init__(needs=needs)
 
     def _process(self, data):
-        for x in self.iterable:
+        for x in data:
             yield x

@@ -310,7 +310,7 @@ class BaseTest(object):
         iterable = chunked(StringIO(data_source['mary']), chunksize=3)
 
         class D(BaseModel, self.Settings):
-            stream = Feature(IteratorNode, iterable=iterable, store=True)
+            stream = Feature(IteratorNode, store=True)
             words = Feature(Tokenizer, needs=stream, store=False)
             count = JSONFeature(WordCount, needs=words, store=True)
 

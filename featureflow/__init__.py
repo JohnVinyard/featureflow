@@ -1,4 +1,4 @@
-__version__ = '0.5.9'
+__version__ = '0.6.9'
 
 from model import BaseModel
 
@@ -25,6 +25,8 @@ from decoder import Decoder
 from lmdbstore import LmdbDatabase
 
 from persistence import PersistenceSettings
+
+from iteratornode import IteratorNode
 
 try:
     from nmpy import StreamingNumpyDecoder, NumpyMetaData, NumpyFeature

@@ -7,6 +7,7 @@ import sys
 import time
 
 from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
+from iteratornode import IteratorNode
 from model import BaseModel, NoPersistenceSettingsError
 from feature import Feature, JSONFeature, CompressedFeature
 from data import *
@@ -305,6 +306,18 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_can_use_iterator_node(self):
+        iterable = chunked(StringIO(data_source['mary']), chunksize=3)
+
+        class D(BaseModel, self.Settings):
+            stream = Feature(IteratorNode, iterable=iterable, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        _id = D.process(stream=iterable)
+        doc = D(_id)
+        self.assertEqual(data_source['mary'], doc.stream.read())
+
     def test_keys_are_removed_when_exception_is_thrown_during_processing(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

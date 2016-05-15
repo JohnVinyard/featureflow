@@ -47,6 +47,10 @@ class Feature(object):
     def __str__(self):
         return self.__repr__()
 
+    @property
+    def version(self):
+        return self.extractor(**self.extractor_args).version
+
     def copy(
             self,
             extractor=None,
@@ -55,10 +59,10 @@ class Feature(object):
             data_writer=None,
             persistence=None,
             extractor_args=None):
-        '''
+        """
         Use self as a template to build a new feature, replacing
         values in kwargs
-        '''
+        """
         return Feature(
                 extractor or self.extractor,
                 needs=needs,
@@ -80,7 +84,7 @@ class Feature(object):
         return (self.persistence or persistence).key_builder
 
     def reader(self, _id, key, persistence):
-        key = self.keybuilder(persistence).build(_id, key)
+        key = self.keybuilder(persistence).build(_id, key, self.version)
         return self.database(persistence).read_stream(key)
 
     @property
@@ -88,7 +92,7 @@ class Feature(object):
         return not self.needs
 
     def _stored(self, _id, persistence):
-        key = self.keybuilder(persistence).build(_id, self.key)
+        key = self.keybuilder(persistence).build(_id, self.key, self.version)
         return key in self.database(persistence)
 
     @property
@@ -96,10 +100,10 @@ class Feature(object):
         return self.encoder.content_type
 
     def _can_compute(self):
-        '''
+        """
         Return true if this feature stored, or is unstored, but can be computed
         from stored dependencies
-        '''
+        """
         if self.store:
             return True
 
@@ -152,10 +156,10 @@ class Feature(object):
         return g, stream
 
     def _partial(self, _id, features=None, persistence=None):
-        '''
+        """
         TODO: _partial is a shit name for this, kind of.  I'm building a graph
         such that I can only do work necessary to compute self, and no more
-        '''
+        """
 
         root = features is None
 
@@ -170,13 +174,13 @@ class Feature(object):
             data_writer = None
 
         should_store = self.store and not stored
-        nf = self.copy( \
+        nf = self.copy(
                 extractor=DecoderNode if is_cached else self.extractor,
                 store=root or should_store,
                 needs=None,
                 data_writer=data_writer,
                 persistence=self.persistence,
-                extractor_args=dict(decodifier=self.decoder) \
+                extractor_args=dict(decodifier=self.decoder, version=self.version) \
                     if is_cached else self.extractor_args)
 
         if root:
@@ -225,6 +229,7 @@ class Feature(object):
                 needs=encoder,
                 _id=_id,
                 feature_name=self.key,
+                feature_version=self.version,
                 key_builder=self.keybuilder(persistence),
                 database=self.database(persistence))
 

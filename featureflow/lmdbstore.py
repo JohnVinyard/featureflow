@@ -81,18 +81,20 @@ class LmdbDatabase(Database):
                 self.dbs[feature] = self.env.open_db(feature)
 
     def _get_db(self, key):
-        _id, feature = self.key_builder.decompose(key)
+        _id, feature, version = self.key_builder.decompose(key)
+        versioned_key = self.key_builder.build(_id, version)
         try:
-            return _id, self.dbs[feature]
+            return versioned_key, self.dbs[feature]
         except KeyError:
             db = self.env.open_db(feature)
             self.dbs[feature] = db
-            return _id, db
+            return versioned_key, db
 
     def _get_read_db(self, key):
-        _id, feature = self.key_builder.decompose(key)
+        _id, feature, version = self.key_builder.decompose(key)
+        versioned_key = self.key_builder.build(_id, version)
         try:
-            return _id, self.dbs[feature]
+            return versioned_key, self.dbs[feature]
         except KeyError:
             raise KeyError(key)
 
@@ -129,10 +131,15 @@ class LmdbDatabase(Database):
         except IndexError:
             return
 
+        seen = set()
         with self.env.begin() as txn:
             cursor = txn.cursor(db)
             for _id in cursor.iternext(keys=True, values=False):
+                _id, version = self.key_builder.decompose(_id)
+                if _id in seen:
+                    continue
                 yield _id
+                seen.add(_id)
 
     def __contains__(self, key):
         try:

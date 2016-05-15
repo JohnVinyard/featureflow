@@ -55,7 +55,7 @@ class KeyBuilder(object):
     from "document" id and feature name
     """
 
-    def build(self, _id, feature_name):
+    def build(self, *args):
         raise NotImplemented()
 
     def decompose(self, composed):
@@ -67,11 +67,8 @@ class StringDelimitedKeyBuilder(KeyBuilder):
         super(StringDelimitedKeyBuilder, self).__init__()
         self._seperator = seperator
 
-    def build(self, _id, feature_name):
-        return '{_id}{sep}{feature}'.format(
-                _id=_id,
-                sep=self._seperator,
-                feature=feature_name)
+    def build(self, *args):
+        return self._seperator.join(str(x) for x in args)
 
     def decompose(self, composed):
         return composed.split(self._seperator)
@@ -148,8 +145,9 @@ class InMemoryDatabase(Database):
     def iter_ids(self):
         seen = set()
         for key in self._dict.iterkeys():
-            _id, _ = self.key_builder.decompose(key)
-            if _id in seen: continue
+            _id, _, _ = self.key_builder.decompose(key)
+            if _id in seen:
+                continue
             yield _id
             seen.add(_id)
 
@@ -184,7 +182,7 @@ class FileSystemDatabase(Database):
     def iter_ids(self):
         seen = set()
         for fn in os.listdir(self._path):
-            _id, _ = self.key_builder.decompose(fn)
+            _id, _, _ = self.key_builder.decompose(fn)
             if _id in seen:
                 continue
             yield _id

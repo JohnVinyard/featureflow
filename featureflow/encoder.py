@@ -4,7 +4,6 @@ import bz2
 from cPickle import dumps
 
 
-# TODO: Switch to using default json module, this simplejson import is dumb
 class IdentityEncoder(Node):
     content_type = 'application/octet-stream'
 

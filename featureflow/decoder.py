@@ -81,9 +81,14 @@ class BZ2Decoder(Decoder):
 
 
 class DecoderNode(Node):
-    def __init__(self, needs=None, decodifier=None):
+    def __init__(self, needs=None, decodifier=None, version=None):
         super(DecoderNode, self).__init__(needs=needs)
+        self._version = version
         self.decoder = decodifier
+
+    @property
+    def version(self):
+        return self._version
 
     def _process(self, data):
         for x in self.decoder.__iter__(data):

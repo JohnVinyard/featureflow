@@ -48,6 +48,10 @@ class Node(object):
         pass
 
     @property
+    def version(self):
+        return self.__class__.__name__
+
+    @property
     def needs(self):
         return self._needs
 

@@ -57,6 +57,19 @@ class MaryTextStream(Node):
             yield chunk
 
 
+class TimestampEmitter(Aggregator, Node):
+    def __init__(self, version='', needs=None):
+        super(TimestampEmitter, self).__init__(needs=needs)
+        self._version = version
+
+    @property
+    def version(self):
+        return self._version
+
+    def _process(self, data):
+        yield self._version
+
+
 class Echo(Node):
     def __init__(self, needs=None):
         super(Echo, self).__init__(needs=needs)
@@ -307,6 +320,32 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 
+    def test_recomputes_when_necessary(self):
+        class D1(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+            timestamp = JSONFeature(
+                    TimestampEmitter,
+                    version='1',
+                    needs=stream,
+                    store=True)
+
+        class D2(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+            timestamp = JSONFeature(
+                    TimestampEmitter,
+                    version='2',
+                    needs=stream,
+                    store=True)
+
+        _id = D1.process(stream='mary')
+        v1 = D1(_id).timestamp
+        v2 = D2(_id).timestamp
+        self.assertNotEqual(v1, v2)
+
     def test_can_iterate_over_database(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
@@ -386,7 +425,8 @@ class BaseTest(object):
             count = JSONFeature(WordCount, needs=words, store=True)
 
         _id = D.process(stream='mary')
-        key = self.Settings.key_builder.build(_id, D.stream.key)
+        key = self.Settings.key_builder.build(
+                _id, D.stream.key, D.stream.version)
         self.assertEqual(
                 len(data_source['mary']), self.Settings.database.size(key))
 
@@ -397,7 +437,7 @@ class BaseTest(object):
             count = JSONFeature(WordCount, needs=words, store=True)
 
         _id = D.process(stream='mary')
-        key = self.Settings.key_builder.build(_id, 'something')
+        key = self.Settings.key_builder.build(_id, 'something', 'else')
         self.assertRaises(KeyError, lambda: self.Settings.database.size(key))
 
     def test_can_retrieve_feature_with_deep_inheritance_hierarchy(self):
@@ -547,7 +587,7 @@ class BaseTest(object):
 
         db = self.Settings.database
         key_builder = self.Settings.key_builder
-        key = key_builder.build(_id, 'count')
+        key = key_builder.build(_id, 'count', D2.count.version)
         self.assertTrue(key in db)
 
         # count should be retrieved
@@ -581,7 +621,7 @@ class BaseTest(object):
 
         db = self.Settings.database
         key_builder = self.Settings.key_builder
-        key = key_builder.build(_id, 'count')
+        key = key_builder.build(_id, 'count', D2.count.version)
         self.assertTrue(key in db)
 
         # aggregate should be computed and stored lazily
@@ -589,7 +629,7 @@ class BaseTest(object):
         self.assertEqual(2, doc.aggregate['a'])
         del doc
 
-        key = key_builder.build(_id, 'aggregate')
+        key = key_builder.build(_id, 'aggregate', D2.aggregate.version)
         self.assertTrue(key in db)
 
         # aggregate should be retrieved
@@ -620,9 +660,9 @@ class BaseTest(object):
 
         # Note that count was never called explicitly, but we should have stored
         # it just the same
-        key = key_builder.build(_id, 'count')
+        key = key_builder.build(_id, 'count', D2.count.version)
         self.assertTrue(key in db)
-        key = key_builder.build(_id, 'aggregate')
+        key = key_builder.build(_id, 'aggregate', D2.aggregate.version)
         self.assertTrue(key in db)
 
         # count should be retrieved
@@ -1090,7 +1130,8 @@ class BaseTest(object):
         _id = A.process(stream='lorem')
         db = self.Settings.database
         key_builder = self.Settings.key_builder
-        stream = db.read_stream(key_builder.build(_id, 'lowercase'))
+        stream = db.read_stream(
+                key_builder.build(_id, 'lowercase', A.lowercase.version))
         compressed = stream.read()
         self.assertTrue(len(compressed) < len(data_source['lorem']))
         doc = A(_id)

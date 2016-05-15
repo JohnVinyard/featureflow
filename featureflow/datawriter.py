@@ -15,6 +15,7 @@ class DataWriter(BaseDataWriter):
             needs=None,
             _id=None,
             feature_name=None,
+            feature_version=None,
             key_builder=None,
             database=None):
 
@@ -23,13 +24,16 @@ class DataWriter(BaseDataWriter):
                 key_builder=key_builder,
                 database=database)
 
+        self.feature_version = feature_version
         self._id = _id
         self.feature_name = feature_name
         self.content_type = needs.content_type
 
     @property
     def key(self):
-        return self.key_builder.build(self._id, self.feature_name)
+        assert self.feature_version is not None
+        return self.key_builder.build(
+                self._id, self.feature_name, self.feature_version)
 
     def __enter__(self):
         self._stream = self.database.write_stream(self.key, self.content_type)
@@ -48,6 +52,7 @@ class StringIODataWriter(BaseDataWriter):
             needs=None,
             _id=None,
             feature_name=None,
+            feature_version=None,
             key_builder=None,
             database=None):
 
@@ -56,6 +61,7 @@ class StringIODataWriter(BaseDataWriter):
                 key_builder=key_builder,
                 database=database)
 
+        self.feature_version = feature_version
         self._id = _id
         self.feature_name = feature_name
         self.content_type = needs.content_type

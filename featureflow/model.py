@@ -1,7 +1,7 @@
 from extractor import Graph
 from feature import Feature
 from persistence import PersistenceSettings
-import traceback
+
 
 class MetaModel(type):
     def __init__(cls, name, bases, attrs):
@@ -81,7 +81,7 @@ class BaseModel(object):
             for f in cls.features.itervalues():
                 if not f.store:
                     continue
-                key = cls.key_builder.build(_id, f.key)
+                key = cls.key_builder.build(_id, f.key, f.version)
                 try:
                     del cls.database[key]
                 except:

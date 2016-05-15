@@ -12,7 +12,7 @@ class LmdbDatabaseTests(unittest2.TestCase):
         self.key_builder = StringDelimitedKeyBuilder()
         self.init_database()
         self.value = os.urandom(1000)
-        self.key = self.key_builder.build('id', 'feature')
+        self.key = self.key_builder.build('id', 'feature', 'version')
 
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)

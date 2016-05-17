@@ -4,7 +4,6 @@ from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from datawriter import DataWriter, StringIODataWriter
-from persistence import PersistenceSettings
 
 
 class Feature(object):
@@ -212,7 +211,7 @@ class Feature(object):
             needs.append(e)
         return needs
 
-    def _build_extractor(self, _id, graph, persistence, never_store=False):
+    def _build_extractor(self, _id, graph, persistence):
         try:
             return graph[self.key]
         except KeyError:
@@ -225,7 +224,7 @@ class Feature(object):
             setattr(e, '_reader', reader)
 
         graph[self.key] = e
-        if never_store or not self.store:
+        if not self.store:
             return e
 
         key = self.key

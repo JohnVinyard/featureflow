@@ -4,6 +4,7 @@ from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from datawriter import DataWriter, StringIODataWriter
+from persistence import PersistenceSettings
 
 
 class Feature(object):
@@ -49,7 +50,13 @@ class Feature(object):
 
     @property
     def version(self):
-        return self.extractor(**self.extractor_args).version
+        # KLUDGE: Build a shallow version of the extractor.  Building a deep
+        # version with re-usable code is more difficult, because
+        # self._build_extractor relies on this version property, so there's
+        # a circular dependency.
+        dependencies = [f.extractor(**f.extractor_args) for f in self.needs]
+        e = self.extractor(needs=dependencies, **self.extractor_args)
+        return e.version
 
     def copy(
             self,
@@ -205,7 +212,7 @@ class Feature(object):
             needs.append(e)
         return needs
 
-    def _build_extractor(self, _id, graph, persistence):
+    def _build_extractor(self, _id, graph, persistence, never_store=False):
         try:
             return graph[self.key]
         except KeyError:
@@ -218,7 +225,7 @@ class Feature(object):
             setattr(e, '_reader', reader)
 
         graph[self.key] = e
-        if not self.store:
+        if never_store or not self.store:
             return e
 
         key = self.key

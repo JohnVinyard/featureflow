@@ -70,6 +70,16 @@ class TimestampEmitter(Aggregator, Node):
         yield self._version
 
 
+class ValidatesDependencies(Node):
+    def __init__(self, needs=None):
+        if not needs:
+            raise ValueError('you must supply at least one dependency')
+        super(ValidatesDependencies, self).__init__(needs=needs)
+
+    def _process(self, data):
+        yield data
+
+
 class Echo(Node):
     def __init__(self, needs=None):
         super(Echo, self).__init__(needs=needs)
@@ -319,6 +329,21 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_can_use_node_that_validates_its_dependency_list(self):
+        class D1(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+            timestamp = JSONFeature(
+                    TimestampEmitter,
+                    version='1',
+                    needs=stream,
+                    store=True)
+            validated = Feature(ValidatesDependencies, needs=stream, store=True)
+
+        _id = D1.process(stream='mary')
+        self.assertTrue(_id)
 
     def test_recomputes_when_necessary(self):
         class D1(BaseModel, self.Settings):

@@ -1,4 +1,4 @@
-__version__ = '1.9.10'
+__version__ = '1.10.10'
 
 from model import BaseModel
 
@@ -29,6 +29,7 @@ from persistence import PersistenceSettings
 from iteratornode import IteratorNode
 
 try:
-    from nmpy import StreamingNumpyDecoder, NumpyMetaData, NumpyFeature
+    from nmpy import PackedNumpyEncoder, StreamingNumpyDecoder, NumpyMetaData, \
+        NumpyFeature
 except ImportError:
     pass

@@ -2,7 +2,7 @@ import unittest2
 
 try:
     import numpy as np
-    from nmpy import NumpyFeature, StreamingNumpyDecoder
+    from nmpy import NumpyFeature, StreamingNumpyDecoder, PackedNumpyEncoder
 except ImportError:
     np = None
 
@@ -44,6 +44,11 @@ class BaseNumpyTest(object):
     def _build_doc(self):
         class Doc(BaseModel, self.Settings):
             feat = NumpyFeature(PassThrough, store=True)
+            packed = NumpyFeature(
+                    PassThrough,
+                    needs=feat,
+                    encoder=PackedNumpyEncoder,
+                    store=True)
 
         return Doc
 
@@ -61,6 +66,15 @@ class BaseNumpyTest(object):
 
     def _register_database(self):
         raise NotImplemented()
+
+    def test_can_store_and_retrieve_packed_array(self):
+        cls = self._build_doc()
+        arr = np.zeros((10, 9))
+        _id = cls.process(feat=arr)
+        doc = cls(_id)
+        recovered = self._restore(doc.packed)
+        self.assertEqual(np.uint8, recovered.dtype)
+        self.assertEqual((10, 2), recovered.shape)
 
     def test_can_store_and_retrieve_empty_array(self):
         self._arrange((0,), np.uint8)
@@ -120,6 +134,12 @@ class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
                 PassThrough,
                 store=True,
                 decoder=StreamingNumpyDecoder(n_examples=3))
+            packed = NumpyFeature(
+                PassThrough,
+                needs=feat,
+                encoder=PackedNumpyEncoder,
+                decoder=StreamingNumpyDecoder(n_examples=3),
+                store=True)
 
         return Doc
 
@@ -143,6 +163,12 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
                 PassThrough,
                 store=True,
                 decoder=StreamingNumpyDecoder(n_examples=3))
+            packed = NumpyFeature(
+                PassThrough,
+                needs=feat,
+                encoder=PackedNumpyEncoder,
+                decoder=StreamingNumpyDecoder(n_examples=3),
+                store=True)
 
         return Doc
 
@@ -167,6 +193,12 @@ class StreamingNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
                 PassThrough,
                 store=True,
                 decoder=StreamingNumpyDecoder(n_examples=3))
+            packed = NumpyFeature(
+                    PassThrough,
+                    needs=feat,
+                    encoder=PackedNumpyEncoder,
+                    decoder=StreamingNumpyDecoder(n_examples=3),
+                    store=True)
 
         return Doc
 

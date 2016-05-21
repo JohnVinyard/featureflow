@@ -57,7 +57,11 @@ class NumpyEncoder(Node):
         super(NumpyEncoder, self).__init__(needs=needs)
         self.metadata = None
 
+    def _prepare_data(self, data):
+        return data
+
     def _process(self, data):
+        data = self._prepare_data(data)
         if not self.metadata:
             self.metadata = NumpyMetaData(
                     dtype=data.dtype, shape=data.shape[1:])
@@ -65,6 +69,14 @@ class NumpyEncoder(Node):
 
         encoded = data.tostring()
         yield encoded
+
+
+class PackedNumpyEncoder(NumpyEncoder):
+    def __init__(self, needs=None):
+        super(PackedNumpyEncoder, self).__init__(needs=needs)
+
+    def _prepare_data(self, data):
+        return np.packbits(data.astype(np.uint8), axis=-1)
 
 
 def _np_from_buffer(b, shape, dtype):
@@ -124,13 +136,14 @@ class NumpyFeature(Feature):
             needs=None,
             store=False,
             key=None,
+            encoder=NumpyEncoder,
             decoder=GreedyNumpyDecoder(),
             **extractor_args):
         super(NumpyFeature, self).__init__(
                 extractor,
                 needs=needs,
                 store=store,
-                encoder=NumpyEncoder,
+                encoder=encoder,
                 decoder=decoder,
                 key=key,
                 **extractor_args)

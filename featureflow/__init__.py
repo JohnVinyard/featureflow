@@ -29,7 +29,7 @@ from persistence import PersistenceSettings
 from iteratornode import IteratorNode
 
 try:
-    from nmpy import PackedNumpyEncoder, StreamingNumpyDecoder, NumpyMetaData, \
-        NumpyFeature
+    from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \
+        NumpyMetaData, NumpyFeature
 except ImportError:
     pass

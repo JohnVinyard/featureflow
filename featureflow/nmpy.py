@@ -93,7 +93,7 @@ class BaseNumpyDecoder(Decoder):
     def _unpack_metadata(self, flo):
         return NumpyMetaData.unpack(flo)
 
-    def _wrap_array(self, raw):
+    def _wrap_array(self, raw, metadata):
         return raw
 
     def __call__(self, flo):
@@ -103,7 +103,7 @@ class BaseNumpyDecoder(Decoder):
         first_dim = leftover_bytes / metadata.totalsize
         dim = (first_dim,) + metadata.shape
         raw = _np_from_buffer(leftovers, dim, metadata.dtype)
-        return self._wrap_array(raw)
+        return self._wrap_array(raw, metadata)
 
     def __iter__(self, flo):
         yield self(flo)

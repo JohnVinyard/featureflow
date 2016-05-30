@@ -60,11 +60,13 @@ class NumpyEncoder(Node):
     def _prepare_data(self, data):
         return data
 
+    def _prepare_metadata(self, data):
+        return NumpyMetaData(dtype=data.dtype, shape=data.shape[1:])
+
     def _process(self, data):
         data = self._prepare_data(data)
         if not self.metadata:
-            self.metadata = NumpyMetaData(
-                    dtype=data.dtype, shape=data.shape[1:])
+            self.metadata = self._prepare_metadata(data)
             yield self.metadata.pack()
 
         encoded = data.tostring()

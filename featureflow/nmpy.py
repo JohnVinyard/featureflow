@@ -86,20 +86,32 @@ def _np_from_buffer(b, shape, dtype):
     return f(b, dtype=dtype).reshape(shape)
 
 
-class GreedyNumpyDecoder(Decoder):
+class BaseNumpyDecoder(Decoder):
     def __init__(self):
-        super(GreedyNumpyDecoder, self).__init__()
+        super(BaseNumpyDecoder, self).__init__()
+
+    def _unpack_metadata(self, flo):
+        return NumpyMetaData.unpack(flo)
+
+    def _wrap_array(self, raw):
+        return raw
 
     def __call__(self, flo):
-        metadata, bytes_read = NumpyMetaData.unpack(flo)
+        metadata, bytes_read = self._unpack_metadata(flo)
         leftovers = flo.read()
         leftover_bytes = len(leftovers)
         first_dim = leftover_bytes / metadata.totalsize
         dim = (first_dim,) + metadata.shape
-        return _np_from_buffer(leftovers, dim, metadata.dtype)
+        raw = _np_from_buffer(leftovers, dim, metadata.dtype)
+        return self._wrap_array(raw)
 
     def __iter__(self, flo):
         yield self(flo)
+
+
+class GreedyNumpyDecoder(BaseNumpyDecoder):
+    def __init__(self):
+        super(GreedyNumpyDecoder, self).__init__()
 
 
 class StreamingNumpyDecoder(Decoder):

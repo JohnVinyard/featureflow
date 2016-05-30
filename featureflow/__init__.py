@@ -30,6 +30,6 @@ from iteratornode import IteratorNode
 
 try:
     from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \
-        NumpyMetaData, NumpyFeature
+        BaseNumpyDecoder, NumpyMetaData, NumpyFeature
 except ImportError:
     pass

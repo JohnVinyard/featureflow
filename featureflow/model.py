@@ -25,6 +25,18 @@ class MetaModel(type):
             except AttributeError:
                 pass
 
+    @staticmethod
+    def _ensure_persistence_settings(cls):
+        if not issubclass(cls, PersistenceSettings):
+            raise NoPersistenceSettingsError(
+                    'The class {cls} is not a PersistenceSettings subclass'
+                    .format(cls=cls.__name__))
+
+    def __iter__(cls):
+        cls._ensure_persistence_settings(cls)
+        for _id in cls.database:
+            yield cls(_id)
+
 
 class NoPersistenceSettingsError(Exception):
     """
@@ -41,13 +53,6 @@ class BaseModel(object):
         super(BaseModel, self).__init__()
         if _id:
             self._id = _id
-
-    @staticmethod
-    def _ensure_persistence_settings(cls):
-        if not issubclass(cls, PersistenceSettings):
-            raise NoPersistenceSettingsError(
-                    'The class {cls} is not a PersistenceSettings subclass'
-                        .format(cls=cls.__name__))
 
     def __getattribute__(self, key):
         f = object.__getattribute__(self, key)

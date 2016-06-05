@@ -329,6 +329,19 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_can_iter_over_document_class(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        D.process(stream='mary')
+        D.process(stream='humpty')
+        D.process(stream='cased')
+
+        l = list(doc for doc in D)
+        self.assertEqual(3, len(l))
+        self.assertTrue(all(isinstance(x, D) for x in l))
 
     def test_can_use_node_that_validates_its_dependency_list(self):
         class D1(BaseModel, self.Settings):
@@ -850,6 +863,9 @@ class BaseTest(object):
         self.assertRaises(
                 KeyError,
                 lambda: Doc.process(stream1='mary'))
+
+    def test_raises_when_no_settings_base_class_and_iter_called(self):
+        self.assertRaises(NoPersistenceSettingsError, lambda: list(Document))
 
     def test_get_meaningful_error_when_no_settings_base_class_and_process_is_called(
             self):

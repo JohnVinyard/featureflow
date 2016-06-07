@@ -1,4 +1,4 @@
-from bytestream import StringWithTotalLength, ByteStream
+from bytestream import StringWithTotalLength, ByteStream, ZipWrapper
 import unittest2
 import sys
 import tempfile
@@ -9,6 +9,7 @@ from io import BytesIO
 from collections import namedtuple
 import os
 from uuid import uuid4
+import zipfile
 
 
 class BytestreamTests(unittest2.TestCase):
@@ -45,6 +46,19 @@ class BytestreamTests(unittest2.TestCase):
             tf.write('')
             tf.seek(0)
             self.assertRaises(ValueError, lambda: self.results(tf.name))
+
+    def test_can_use_zip_file(self):
+        bio = BytesIO()
+        fn = 'test.dat'
+        with zipfile.ZipFile(bio, mode='w') as zf:
+            zf.writestr(fn, self.expected)
+        bio.seek(0)
+
+        with zipfile.ZipFile(bio) as zf:
+            with zf.open(fn) as x:
+                wrapper = ZipWrapper(x, zf.getinfo(fn))
+                results = self.results(wrapper)
+        self.assertEqual(self.expected, results)
 
     def test_can_use_local_file(self):
         with tempfile.NamedTemporaryFile('w+') as tf:

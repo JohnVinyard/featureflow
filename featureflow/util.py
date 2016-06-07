@@ -4,3 +4,5 @@ def chunked(f, chunksize=4096):
     while data:
         yield data
         data = f.read(chunksize)
+
+

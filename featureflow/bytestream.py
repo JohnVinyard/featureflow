@@ -6,6 +6,7 @@ import requests
 from urlparse import urlparse
 import os
 import struct
+import zipfile
 
 
 class ByteStream(Node):
@@ -43,6 +44,9 @@ class ByteStream(Node):
         data.seek(0)
         return self._generator(data, content_length)
 
+    def _handle_zip_file(self, data):
+        return self._generator(data.zipfile, data.file_size)
+
     def _handle_file(self, data):
         with open(data, 'rb') as f:
             content_length = int(os.path.getsize(data))
@@ -50,6 +54,8 @@ class ByteStream(Node):
                 yield chunk
 
     def _get_strategy(self, data):
+        if isinstance(data, ZipWrapper):
+            return self._handle_zip_file
         if isinstance(data, requests.Request):
             return self._handle_http_request
         if isinstance(data, str):
@@ -66,6 +72,29 @@ class ByteStream(Node):
         strategy = self._get_strategy(data)
         for chunk in strategy(data):
             yield chunk
+
+
+def iter_zip(fn):
+    with zipfile.ZipFile(fn) as zf:
+        for info in zf.filelist:
+            if not info.file_size:
+                continue
+            with zf.open(info.filename) as f:
+                yield ZipWrapper(f, info)
+
+
+class ZipWrapper(object):
+    def __init__(self, zipfile, zipinfo):
+        self.zipinfo = zipinfo
+        self.zipfile = zipfile
+
+    @property
+    def file_size(self):
+        return self.zipinfo.file_size
+
+    @property
+    def filename(self):
+        return self.zipinfo.filename
 
 
 class StringWithTotalLength(str):

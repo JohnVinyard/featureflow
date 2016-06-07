@@ -1,4 +1,4 @@
-__version__ = '1.12.10'
+__version__ = '1.13.10'
 
 from model import BaseModel
 
@@ -7,7 +7,7 @@ from feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
 
 from extractor import Node, Graph, Aggregator, NotEnoughData
 
-from bytestream import ByteStream, ByteStreamFeature
+from bytestream import ByteStream, ByteStreamFeature, ZipWrapper, iter_zip
 
 from data import \
     IdProvider, UuidProvider, UserSpecifiedIdProvider, StaticIdProvider, \

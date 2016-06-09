@@ -159,9 +159,11 @@ class InMemoryDatabase(Database):
 
 
 class FileSystemDatabase(Database):
-    def __init__(self, path=None, key_builder=None):
+    def __init__(self, path=None, key_builder=None, createdirs=False):
         super(FileSystemDatabase, self).__init__(key_builder=key_builder)
         self._path = path
+        if createdirs and not os.path.exists(self._path):
+            os.makedirs(self._path)
 
     def write_stream(self, key, content_type):
         return open(os.path.join(self._path, key), 'wb')

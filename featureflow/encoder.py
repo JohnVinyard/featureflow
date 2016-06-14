@@ -1,7 +1,7 @@
 import json
 from extractor import Node, Aggregator
 import bz2
-from cPickle import dumps
+from cPickle import dumps, HIGHEST_PROTOCOL
 
 
 class IdentityEncoder(Node):
@@ -38,7 +38,7 @@ class PickleEncoder(Aggregator, Node):
         super(PickleEncoder, self).__init__(needs=needs)
 
     def _process(self, data):
-        yield dumps(data)
+        yield dumps(data, HIGHEST_PROTOCOL)
 
 
 class BZ2Encoder(Node):

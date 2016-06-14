@@ -2,7 +2,7 @@ import json
 from util import chunked
 from extractor import Node
 import bz2
-from cPickle import loads
+from cPickle import loads, HIGHEST_PROTOCOL
 
 
 class Decoder(object):
@@ -57,7 +57,7 @@ class PickleDecoder(GreedyDecoder):
         super(PickleDecoder, self).__init__()
 
     def __call__(self, flo):
-        return loads(flo.read())
+        return loads(flo.read(), HIGHEST_PROTOCOL)
 
     def __iter__(self, flo):
         yield self(flo)

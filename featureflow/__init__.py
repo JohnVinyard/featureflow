@@ -1,4 +1,4 @@
-__version__ = '1.16.10'
+__version__ = '1.16.11'
 
 from model import BaseModel
 

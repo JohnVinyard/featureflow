@@ -19,6 +19,7 @@ from decoder import Decoder
 from persistence import PersistenceSettings
 from tempfile import mkdtemp
 from shutil import rmtree
+import traceback
 
 data_source = {
     'mary': 'mary had a little lamb little lamb little lamb',
@@ -147,6 +148,18 @@ class Total(Aggregator, Node):
         self._cache += data
 
     def _process(self, data):
+        yield data
+
+
+class Broken(Node):
+
+    MESSAGE = uuid4().hex
+
+    def __init__(self, needs=None):
+        super(Broken, self).__init__(needs=needs)
+
+    def _process(self, data):
+        raise Exception(Broken.MESSAGE)
         yield data
 
 
@@ -329,6 +342,24 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_get_sane_stack_trace_when_node_raises(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            broken = Feature(Broken, needs=words, store=False)
+            count = JSONFeature(WordCount, needs=broken, store=True)
+
+        try:
+            D.process(stream='mary')
+        except Exception:
+            _, _, tb = sys.exc_info()
+            items = traceback.extract_tb(tb)
+            self.assertEqual('raise Exception(Broken.MESSAGE)', items[-1][-1])
+            return
+
+        self.fail('Exception should have been raised')
+
     def test_can_iter_over_document_class(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

@@ -30,7 +30,7 @@ class MetaModel(type):
         if not issubclass(cls, PersistenceSettings):
             raise NoPersistenceSettingsError(
                     'The class {cls} is not a PersistenceSettings subclass'
-                    .format(cls=cls.__name__))
+                        .format(cls=cls.__name__))
 
     def __iter__(cls):
         cls._ensure_persistence_settings(cls)
@@ -74,6 +74,17 @@ class BaseModel(object):
         return g
 
     @classmethod
+    def _rollback(cls, _id):
+        for f in cls.features.itervalues():
+            if not f.store:
+                continue
+            key = cls.key_builder.build(_id, f.key, f.version)
+            try:
+                del cls.database[key]
+            except:
+                pass
+
+    @classmethod
     def process(cls, **kwargs):
         BaseModel._ensure_persistence_settings(cls)
         _id = cls.id_provider.new_id(**kwargs)
@@ -82,13 +93,6 @@ class BaseModel(object):
         try:
             graph.process(**kwargs)
             return _id
-        except Exception as e:
-            for f in cls.features.itervalues():
-                if not f.store:
-                    continue
-                key = cls.key_builder.build(_id, f.key, f.version)
-                try:
-                    del cls.database[key]
-                except:
-                    pass
-            raise e
+        except Exception:
+            cls._rollback(_id)
+            raise

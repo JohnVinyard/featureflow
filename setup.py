@@ -25,5 +25,10 @@ setup(
         long_description=long_description,
         packages=['featureflow'],
         download_url=download_url,
-        install_requires=['nose', 'unittest2', 'requests', 'lmdb']
+        install_requires=[
+            'nose',
+            'unittest2',
+            'requests',
+            'lmdb'
+        ]
 )

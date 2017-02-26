@@ -15,6 +15,7 @@ from bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
 from util import chunked
 from lmdbstore import LmdbDatabase
+from objectstore import ObjectStoreDatabase
 from decoder import Decoder
 from persistence import PersistenceSettings
 from tempfile import mkdtemp
@@ -152,7 +153,6 @@ class Total(Aggregator, Node):
 
 
 class Broken(Node):
-
     MESSAGE = uuid4().hex
 
     def __init__(self, needs=None):
@@ -342,7 +342,6 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
-
     def test_get_sane_stack_trace_when_node_raises(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

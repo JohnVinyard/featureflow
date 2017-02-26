@@ -24,6 +24,8 @@ from decoder import Decoder
 
 from lmdbstore import LmdbDatabase
 
+from objectstore import ObjectStoreDatabase
+
 from persistence import PersistenceSettings
 
 from iteratornode import IteratorNode

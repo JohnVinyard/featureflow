@@ -4,7 +4,7 @@ from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from datawriter import DataWriter, StringIODataWriter
-
+import io
 
 class Feature(object):
     def __init__(
@@ -144,7 +144,9 @@ class Feature(object):
         graph.process(**kwargs)
         if stream is None:
             stream = self.reader(_id, self.key, persistence)
+
         stream.seek(0)
+
         decoded = decoder(stream)
         return decoded
 
@@ -154,7 +156,7 @@ class Feature(object):
         for feat in features.itervalues():
             e = feat._build_extractor(_id, g, persistence)
             if feat.key == self.key:
-                stream = e.find_listener( \
+                stream = e.find_listener(
                         lambda x: isinstance(x, StringIODataWriter))
                 if stream is not None:
                     stream = stream._stream

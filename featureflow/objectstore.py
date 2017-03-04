@@ -135,7 +135,7 @@ class ObjectStoreDatabase(Database):
         if resp.status_code == httplib.NOT_FOUND:
             raise KeyError(key)
 
-        return resp.raw
+        return BytesIO(resp.raw.read())
 
     def size(self, key):
         uri = self._cdn_uri(key)

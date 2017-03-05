@@ -15,7 +15,6 @@ from bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
 from util import chunked
 from lmdbstore import LmdbDatabase
-from objectstore import ObjectStoreDatabase
 from decoder import Decoder
 from persistence import PersistenceSettings
 from tempfile import mkdtemp
@@ -155,11 +154,24 @@ class Total(Aggregator, Node):
 class Broken(Node):
     MESSAGE = uuid4().hex
 
-    def __init__(self, needs=None):
+    def __init__(
+            self,
+            raise_on_process=True,
+            raise_on_enqueue=False,
+            needs=None):
+
         super(Broken, self).__init__(needs=needs)
+        self.raise_on_enqueue = raise_on_enqueue
+        self.raise_on_process = raise_on_process
+
+    def _enqueue(self, data, pusher):
+        if self.raise_on_enqueue:
+            raise Exception(Broken.MESSAGE)
+        super(Broken, self)._enqueue(data, pusher)
 
     def _process(self, data):
-        raise Exception(Broken.MESSAGE)
+        if self.raise_on_process:
+            raise Exception(Broken.MESSAGE)
         yield data
 
 
@@ -342,6 +354,29 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_get_sane_stack_trace_when_node_raises_on_enqueue(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            broken = Feature(
+                    Broken,
+                    raise_on_process=False,
+                    raise_on_enqueue=True,
+                    needs=words,
+                    store=False)
+            count = JSONFeature(WordCount, needs=broken, store=True)
+
+        try:
+            D.process(stream='mary')
+        except Exception:
+            _, _, tb = sys.exc_info()
+            items = traceback.extract_tb(tb)
+            self.assertEqual('raise Exception(Broken.MESSAGE)', items[-1][-1])
+            return
+
+        self.fail('Exception should have been raised')
+
     def test_get_sane_stack_trace_when_node_raises(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

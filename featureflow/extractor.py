@@ -236,7 +236,7 @@ class Graph(dict):
                     key, fname, kwargs = queue.pop()
                     for subscriber in subscriptions[key]:
                         func = getattr(subscriber, fname)
-                        try:
-                            [_ for _ in func(**kwargs)]
-                        except TypeError:
+                        result = func(**kwargs)
+                        if result is None:
                             continue
+                        [_ for _ in result]

@@ -166,7 +166,7 @@ class Broken(Node):
 
     def _enqueue(self, data, pusher):
         if self.raise_on_enqueue:
-            raise Exception(Broken.MESSAGE)
+            raise TypeError(Broken.MESSAGE)
         super(Broken, self)._enqueue(data, pusher)
 
     def _process(self, data):
@@ -372,7 +372,7 @@ class BaseTest(object):
         except Exception:
             _, _, tb = sys.exc_info()
             items = traceback.extract_tb(tb)
-            self.assertEqual('raise Exception(Broken.MESSAGE)', items[-1][-1])
+            self.assertEqual('raise TypeError(Broken.MESSAGE)', items[-1][-1])
             return
 
         self.fail('Exception should have been raised')
@@ -549,7 +549,7 @@ class BaseTest(object):
             echo = Feature(Echo, needs=stream, store=True)
 
         class D2(D1):
-            words = Feature(Tokenizer, needs=D1.stream, store=True)
+            words = Feature(Tokenizer, needs=D1.stream, store=False)
 
         class D3(D2):
             count = JSONFeature(WordCount, needs=D2.words, store=True)

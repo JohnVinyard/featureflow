@@ -29,6 +29,7 @@ setup(
             'nose',
             'unittest2',
             'requests',
-            'lmdb'
+            'lmdb',
+            'redis'
         ]
 )

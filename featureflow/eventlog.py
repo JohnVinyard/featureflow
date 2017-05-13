@@ -12,7 +12,7 @@ class InMemoryChannel(object):
         super(InMemoryChannel, self).__init__()
         self.generators = list()
 
-    def subscribe(self):
+    def subscribe(self, raise_when_empty=False):
         d = deque()
         self.generators.append(d)
 
@@ -22,6 +22,8 @@ class InMemoryChannel(object):
                     data = json.loads(d.popleft())
                     yield data['_id'], data['message']
                 except IndexError:
+                    if raise_when_empty:
+                        raise StopIteration
                     continue
 
         return gen()
@@ -33,14 +35,18 @@ class InMemoryChannel(object):
 
 
 class RedisChannel(object):
-    def __init__(self, channel):
+    def __init__(self, channel, host='localhost', port=6379):
         super(RedisChannel, self).__init__()
         self.channel = channel
-        self.r = redis.StrictRedis()
+        self.r = redis.StrictRedis(host=host, port=port)
         self.p = self.r.pubsub(ignore_subscribe_messages=True)
         self.p.subscribe(channel)
 
-    def subscribe(self):
+    def subscribe(self, raise_when_empty=False):
+        if raise_when_empty:
+            raise NotImplementedError(
+                'raise_when_empty=True is not supported for RedisChannel')
+
         for message in self.p.listen():
             data = json.loads(message['data'])
             yield data['_id'], data['message']
@@ -50,9 +56,9 @@ class RedisChannel(object):
             self.channel, json.dumps({'_id': _id, 'message': message}))
 
 
-class EventStore(object):
+class EventLog(object):
     def __init__(self, path, channel, map_size=1000000000):
-        super(EventStore, self).__init__()
+        super(EventLog, self).__init__()
         self.channel = channel
         self.path = path
         self.env = lmdb.open(
@@ -63,20 +69,26 @@ class EventStore(object):
             map_async=True,
             metasync=True)
 
+    def __len__(self):
+        with self.env.begin() as txn:
+            return txn.stat()['entries']
+
     def append(self, data):
         with self.env.begin(write=True) as txn:
             _id = hex(int(time.time() * 1e6)) + binascii.hexlify(os.urandom(8))
             txn.put(_id, data)
         self.channel.publish(_id, data)
 
-    def subscribe(self, last_id):
-        with self.env.begin(buffers=True) as txn:
-            cursor = txn.cursor()
-            if cursor.set_range(last_id):
-                for _id, data in cursor:
-                    yield _id, data
+    def subscribe(self, last_id='', raise_when_empty=False):
+        subscription = self.channel.subscribe(raise_when_empty=raise_when_empty)
 
-        for _id, data in self.channel.subscribe():
+        with self.env.begin() as txn:
+            with txn.cursor() as cursor:
+                if cursor.set_range(last_id):
+                    for _id, data in cursor:
+                        yield _id, data
+
+        for _id, data in subscription:
             yield _id, data
 
 

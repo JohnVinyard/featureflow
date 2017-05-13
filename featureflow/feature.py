@@ -1,10 +1,10 @@
-from extractor import Graph
-from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
-    PickleEncoder
+from datawriter import DataWriter, StringIODataWriter
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
-from datawriter import DataWriter, StringIODataWriter
-import io
+from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
+    PickleEncoder
+from extractor import Graph
+
 
 class Feature(object):
     def __init__(
@@ -88,6 +88,12 @@ class Feature(object):
 
     def keybuilder(self, persistence):
         return (self.persistence or persistence).key_builder
+
+    def event_log(self, persistence):
+        try:
+            return (self.persistence or persistence).event_log
+        except AttributeError:
+            return None
 
     def reader(self, _id, key, persistence):
         key = self.keybuilder(persistence).build(_id, key, self.version)
@@ -239,7 +245,8 @@ class Feature(object):
                 feature_name=self.key,
                 feature_version=self.version,
                 key_builder=self.keybuilder(persistence),
-                database=self.database(persistence))
+                database=self.database(persistence),
+                event_log=self.event_log(persistence))
 
         graph['{key}_writer'.format(**locals())] = dw
         return e

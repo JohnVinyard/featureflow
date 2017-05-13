@@ -47,6 +47,16 @@ class EventLogTests(unittest2.TestCase):
         self.Model.process(stream='Bah bah black sheep')
         self.assertEqual(4, self.Settings.event_log.__len__())
 
+    def test_only_returns_events_greater_than_last_id(self):
+        self.Model.process(stream='Bah bah black sheep')
+        events = list(self.Settings.event_log.subscribe(
+            last_id='', raise_when_empty=True))
+        last_id, _ = events[-1]
+        self.Model.process(stream='Humpty dumpty sat on a wall')
+        next_events = list(self.Settings.event_log.subscribe(
+            last_id=last_id, raise_when_empty=True))
+        self.assertEqual(2, len(next_events))
+
     def test_events_are_logged_when_event_log_is_configured(self):
 
         d1 = self.Model.process(stream='Bah bah black sheep')

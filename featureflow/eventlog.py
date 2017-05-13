@@ -78,6 +78,7 @@ class EventLog(object):
             _id = hex(int(time.time() * 1e6)) + binascii.hexlify(os.urandom(8))
             txn.put(_id, data)
         self.channel.publish(_id, data)
+        return _id
 
     def subscribe(self, last_id='', raise_when_empty=False):
         subscription = self.channel.subscribe(raise_when_empty=raise_when_empty)
@@ -86,6 +87,8 @@ class EventLog(object):
             with txn.cursor() as cursor:
                 if cursor.set_range(last_id):
                     for _id, data in cursor:
+                        if _id == last_id:
+                            continue
                         yield _id, data
 
         for _id, data in subscription:

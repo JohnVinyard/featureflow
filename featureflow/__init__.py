@@ -30,6 +30,8 @@ from persistence import PersistenceSettings
 
 from iteratornode import IteratorNode
 
+from eventlog import EventLog, RedisChannel
+
 try:
     from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \
         BaseNumpyDecoder, NumpyMetaData, NumpyFeature

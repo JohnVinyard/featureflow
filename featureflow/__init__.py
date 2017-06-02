@@ -20,7 +20,7 @@ from database_iterator import DatabaseIterator
 
 from encoder import IdentityEncoder
 
-from decoder import Decoder
+from decoder import Decoder, PickleDecoder
 
 from lmdbstore import LmdbDatabase
 

@@ -18,7 +18,7 @@ from datawriter import DataWriter
 
 from database_iterator import DatabaseIterator
 
-from encoder import IdentityEncoder
+from encoder import IdentityEncoder, PickleEncoder
 
 from decoder import Decoder, PickleDecoder
 

@@ -40,7 +40,6 @@ class RedisChannel(object):
         self.channel = channel
         self.r = redis.StrictRedis(host=host, port=port)
         self.p = self.r.pubsub(ignore_subscribe_messages=True)
-        self.p.subscribe(channel)
 
     def subscribe(self, raise_when_empty=False):
         if raise_when_empty:

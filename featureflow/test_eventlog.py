@@ -4,7 +4,7 @@ from model import BaseModel
 from persistence import PersistenceSettings
 import tempfile
 import shutil
-from test_integration import TextStream, ToUpper
+from test_integration import TextStream, ToUpper, ToLower
 from feature import Feature
 from data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
 import json
@@ -27,6 +27,11 @@ class EventLogTests(unittest2.TestCase):
             upper = Feature(ToUpper, needs=stream, store=True)
 
         self.Model = Model
+
+        class DerivedModel(Model):
+            lower = Feature(ToLower, needs=Model.stream, store=True)
+
+        self.DerivedModel = DerivedModel
 
     def tearDown(self):
         shutil.rmtree(self._dir)
@@ -58,7 +63,6 @@ class EventLogTests(unittest2.TestCase):
         self.assertEqual(2, len(next_events))
 
     def test_events_are_logged_when_event_log_is_configured(self):
-
         d1 = self.Model.process(stream='Bah bah black sheep')
         d2 = self.Model.process(stream='Humpty dumpty sat on a wall')
 
@@ -99,3 +103,18 @@ class EventLogTests(unittest2.TestCase):
         self.assertEqual('upper', e3['name'])
         self.assertEqual(d2, e4['_id'])
         self.assertEqual('stream', e4['name'])
+
+    def test_events_occur_for_lazily_computed_fields(self):
+        subscription = self.Settings.event_log.subscribe(
+            last_id='', raise_when_empty=True)
+        _id = self.Model.process(stream='Bah bah black sheep')
+        self._fetch(subscription)
+        self._fetch(subscription)
+
+        d2 = self.DerivedModel(_id)
+        # lazily compute lowercase
+        d2.lower
+        event = self._fetch(subscription)
+        self.assertEqual(_id, event['_id'])
+        self.assertEqual('lower', event['name'])
+

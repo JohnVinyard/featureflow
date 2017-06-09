@@ -46,6 +46,7 @@ class RedisChannel(object):
             raise NotImplementedError(
                 'raise_when_empty=True is not supported for RedisChannel')
 
+        self.p.subscribe(self.channel)
         for message in self.p.listen():
             data = json.loads(message['data'])
             yield data['_id'], data['message']

@@ -96,7 +96,12 @@ class LmdbDatabase(Database):
         try:
             return versioned_key, self.dbs[feature]
         except KeyError:
-            raise KeyError(key)
+            try:
+                db = self.env.open_db(feature, create=False)
+                self.dbs[feature] = db
+                return versioned_key, self.dbs[feature]
+            except lmdb.NotFoundError:
+                raise KeyError(key)
 
     def write_stream(self, key, content_type):
         return WriteStream(key, self.env, self._get_db)

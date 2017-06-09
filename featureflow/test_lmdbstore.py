@@ -17,14 +17,33 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def tearDown(self):
         shutil.rmtree(self.path, ignore_errors=True)
 
+    def build_database(self):
+        return LmdbDatabase(
+            self.path,
+            key_builder=self.key_builder)
+
     def init_database(self):
-        self.db = LmdbDatabase(
-                self.path,
-                key_builder=self.key_builder)
+        self.db = self.build_database()
 
     def write_key(self):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
             ws.write(self.value)
+
+    def test_key_error_is_raised_when_key_not_found(self):
+        def x():
+            with self.db.read_stream(self.key) as rs:
+                value = rs.read()
+        self.assertRaises(KeyError, x)
+
+    def test_can_read_from_another_instance(self):
+        # first, open another instance
+        other_instance = self.build_database()
+        # next write a key to the original instance
+        self.write_key()
+        # finally, read a key from the first-opened instance
+        with other_instance.read_stream(self.key) as rs:
+            value = rs.read()
+            self.assertEqual(1000, len(value))
 
     def test_can_iter_ids_immediately_after_opening(self):
         self.write_key()

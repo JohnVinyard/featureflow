@@ -30,7 +30,7 @@ from persistence import PersistenceSettings
 
 from iteratornode import IteratorNode
 
-from eventlog import EventLog, RedisChannel
+from eventlog import EventLog, RedisChannel, InMemoryChannel
 
 try:
     from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \

@@ -4,7 +4,7 @@ import os
 import time
 import redis
 import json
-from collections import deque
+from Queue import Queue, Empty
 
 
 class InMemoryChannel(object):
@@ -13,25 +13,23 @@ class InMemoryChannel(object):
         self.generators = list()
 
     def subscribe(self, raise_when_empty=False):
-        d = deque()
+        d = Queue()
         self.generators.append(d)
 
         def gen():
             while True:
                 try:
-                    data = json.loads(d.popleft())
+                    data = json.loads(d.get(block=not raise_when_empty))
                     yield data['_id'], data['message']
-                except IndexError:
-                    if raise_when_empty:
-                        raise StopIteration
-                    continue
+                except Empty:
+                    raise StopIteration
 
         return gen()
 
     def publish(self, _id, message):
         message = json.dumps({'_id': _id, 'message': message})
         for generator in self.generators:
-            generator.append(message)
+            generator.put_nowait(message)
 
 
 class RedisChannel(object):

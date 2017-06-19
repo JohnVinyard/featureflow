@@ -792,6 +792,21 @@ class BaseTest(object):
         doc = Document(_id)
         self.assertEqual(2, doc.count['a'])
 
+    def test_raises_when_processing_same_id_twice(self):
+        settings = self.Settings.clone(
+            id_provider=UserSpecifiedIdProvider(key='_id'))
+
+        class Document(BaseModel, settings):
+            stream = Feature(TextStream, store=True)
+            dam = Feature(Dam, needs=stream, store=False)
+            words = Feature(Tokenizer, needs=dam, store=False)
+            count = JSONFeature(WordCount, needs=words, store=False)
+
+        Document.process(stream='humpty', _id='blah')
+        # processing the same id a second time should raise an error
+        self.assertRaises(ValueError, lambda: Document.process(
+            stream='humpty', _id='blah'))
+
     def test_can_have_multiple_producer_like_nodes(self):
         class Document(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

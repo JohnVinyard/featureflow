@@ -29,8 +29,8 @@ class MetaModel(type):
     def _ensure_persistence_settings(cls):
         if not issubclass(cls, PersistenceSettings):
             raise NoPersistenceSettingsError(
-                    'The class {cls} is not a PersistenceSettings subclass'
-                        .format(cls=cls.__name__))
+                'The class {cls} is not a PersistenceSettings subclass'
+                    .format(cls=cls.__name__))
 
     def __iter__(cls):
         cls._ensure_persistence_settings(cls)
@@ -88,6 +88,15 @@ class BaseModel(object):
     def process(cls, **kwargs):
         BaseModel._ensure_persistence_settings(cls)
         _id = cls.id_provider.new_id(**kwargs)
+
+        # choose a random, stored feature
+        feature = filter(lambda f: f.store, cls.iter_features())[0]
+        feature_key = feature.feature_key(_id, cls)
+        # check if that feature is already stored
+        if feature_key in cls.database:
+            raise ValueError(
+                '{_id} is already stored in the database'.format(**locals()))
+
         graph = cls._build_extractor(_id)
         graph.remove_dead_nodes(cls.features.itervalues())
         try:

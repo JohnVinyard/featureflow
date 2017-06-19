@@ -95,6 +95,9 @@ class Feature(object):
         except AttributeError:
             return None
 
+    def feature_key(self, _id, persistence):
+        return self.keybuilder(persistence).build(_id, self.key, self.version)
+
     def reader(self, _id, key, persistence):
         key = self.keybuilder(persistence).build(_id, key, self.version)
         return self.database(persistence).read_stream(key)

@@ -145,11 +145,11 @@ class ByteStreamFeature(Feature):
             key=None,
             **extractor_args):
         super(ByteStreamFeature, self).__init__(
-                extractor,
-                needs=needs,
-                store=store,
-                encoder=StringWithTotalLengthEncoder,
-                decoder=StringWithTotalLengthDecoder(
-                        chunksize=extractor_args['chunksize']),
-                key=key,
-                **extractor_args)
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=StringWithTotalLengthEncoder,
+            decoder=StringWithTotalLengthDecoder(
+                chunksize=extractor_args['chunksize']),
+            key=key,
+            **extractor_args)

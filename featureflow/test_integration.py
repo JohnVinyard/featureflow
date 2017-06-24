@@ -8,7 +8,7 @@ import time
 
 from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
 from iteratornode import IteratorNode
-from model import BaseModel, NoPersistenceSettingsError
+from model import BaseModel, NoPersistenceSettingsError, ModelExistsError
 from feature import Feature, JSONFeature, CompressedFeature
 from data import *
 from bytestream import ByteStream, ByteStreamFeature
@@ -804,7 +804,7 @@ class BaseTest(object):
 
         Document.process(stream='humpty', _id='blah', raise_if_exists=True)
         # processing the same id a second time should raise an error
-        self.assertRaises(ValueError, lambda: Document.process(
+        self.assertRaises(ModelExistsError, lambda: Document.process(
             stream='humpty', _id='blah', raise_if_exists=True))
 
     def test_can_have_multiple_producer_like_nodes(self):

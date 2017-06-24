@@ -46,6 +46,13 @@ class NoPersistenceSettingsError(Exception):
     pass
 
 
+class ModelExistsError(Exception):
+    """
+    Error raised when a model has already been computed and persisted
+    """
+    pass
+
+
 class BaseModel(object):
     __metaclass__ = MetaModel
 
@@ -95,8 +102,9 @@ class BaseModel(object):
             feature_key = feature.feature_key(_id, cls)
             # check if that feature is already stored
             if feature_key in cls.database:
-                raise ValueError(
-                    '{_id} is already stored in the database'.format(**locals()))
+                raise ModelExistsError(
+                    '{_id} is already stored in the database'.format(
+                        **locals()))
 
         graph = cls._build_extractor(_id)
         graph.remove_dead_nodes(cls.features.itervalues())

@@ -1,6 +1,6 @@
 __version__ = '1.18.14'
 
-from model import BaseModel
+from model import BaseModel, ModelExistsError
 
 from feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
     PickleFeature

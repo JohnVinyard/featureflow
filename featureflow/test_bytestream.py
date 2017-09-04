@@ -41,6 +41,25 @@ class BytestreamTests(unittest2.TestCase):
                 method='GET',
                 url=self.local_url())
 
+    def test_can_accept_chunksize_implementing_int(self):
+
+        class SemanticChunksize(object):
+            THING_SIZE_BYTES = 64
+
+            def __init__(self, n_things=10):
+                self.n_things = n_things
+
+            def __int__(self):
+                return self.n_things * self.THING_SIZE_BYTES
+
+        bs = ByteStream(
+            chunksize=SemanticChunksize(n_things=100))
+        bio = BytesIO()
+        bio.write(os.urandom(int(1e5)))
+        bio.seek(0)
+        chunks = list(bs._process(bio))
+        self.assertEqual(6400, len(chunks[0]))
+
     def test_throws_on_zero_length_stream(self):
         with tempfile.NamedTemporaryFile('w+') as tf:
             tf.write('')

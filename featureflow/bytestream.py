@@ -12,7 +12,7 @@ import zipfile
 class ByteStream(Node):
     def __init__(self, chunksize=4096, needs=None):
         super(ByteStream, self).__init__(needs=needs)
-        self._chunksize = chunksize
+        self._chunksize = int(chunksize)
 
     def _generator(self, stream, content_length):
         if not content_length:

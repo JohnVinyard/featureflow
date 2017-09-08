@@ -133,7 +133,7 @@ class ToLower(Node):
 class CharacterCountNonGeneratorProcessMethod(Node):
     def __init__(self, needs=None):
         super(CharacterCountNonGeneratorProcessMethod, self).__init__(
-                needs=needs)
+            needs=needs)
 
     def _process(self, data):
         return len(data)
@@ -355,6 +355,30 @@ class MultipleRoots(BaseModel):
 
 class BaseTest(object):
 
+    def test_can_compute_feature_directly_with_lambda(self):
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(lambda x: x.upper(), needs=stream, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
+    def test_can_compute_feature_directly_with_callable(self):
+        class FancyUpperCase(object):
+            def __call__(self, x):
+                return x.upper()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(FancyUpperCase(), needs=stream, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
     def test_can_check_if_document_exists_using_explicit_feature(self):
         settings = self.Settings.clone(
             id_provider=UserSpecifiedIdProvider(key='_id'))
@@ -412,11 +436,11 @@ class BaseTest(object):
             stream = Feature(TextStream, store=True)
             words = Feature(Tokenizer, needs=stream, store=False)
             broken = Feature(
-                    Broken,
-                    raise_on_process=False,
-                    raise_on_enqueue=True,
-                    needs=words,
-                    store=False)
+                Broken,
+                raise_on_process=False,
+                raise_on_enqueue=True,
+                needs=words,
+                store=False)
             count = JSONFeature(WordCount, needs=broken, store=True)
 
         try:
@@ -466,10 +490,10 @@ class BaseTest(object):
             words = Feature(Tokenizer, needs=stream, store=False)
             count = JSONFeature(WordCount, needs=words, store=True)
             timestamp = JSONFeature(
-                    TimestampEmitter,
-                    version='1',
-                    needs=stream,
-                    store=True)
+                TimestampEmitter,
+                version='1',
+                needs=stream,
+                store=True)
             validated = Feature(ValidatesDependencies, needs=stream, store=True)
 
         _id = D1.process(stream='mary')
@@ -481,20 +505,20 @@ class BaseTest(object):
             words = Feature(Tokenizer, needs=stream, store=False)
             count = JSONFeature(WordCount, needs=words, store=True)
             timestamp = JSONFeature(
-                    TimestampEmitter,
-                    version='1',
-                    needs=stream,
-                    store=True)
+                TimestampEmitter,
+                version='1',
+                needs=stream,
+                store=True)
 
         class D2(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
             words = Feature(Tokenizer, needs=stream, store=False)
             count = JSONFeature(WordCount, needs=words, store=True)
             timestamp = JSONFeature(
-                    TimestampEmitter,
-                    version='2',
-                    needs=stream,
-                    store=True)
+                TimestampEmitter,
+                version='2',
+                needs=stream,
+                store=True)
 
         _id = D1.process(stream='mary')
         v1 = D1(_id).timestamp
@@ -545,13 +569,13 @@ class BaseTest(object):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
             length = Feature(
-                    CharacterCountNonGeneratorProcessMethod,
-                    needs=stream,
-                    store=True)
+                CharacterCountNonGeneratorProcessMethod,
+                needs=stream,
+                store=True)
             total = Feature(Total, needs=length, store=True)
 
         self.assertRaises(
-                InvalidProcessMethod, lambda: D.process(stream='mary'))
+            InvalidProcessMethod, lambda: D.process(stream='mary'))
 
     def test_can_use_string_for_remote_url(self):
         class D(BaseModel, self.Settings):
@@ -562,14 +586,14 @@ class BaseTest(object):
         try:
             devnull = open(os.devnull, 'w')
             p = subprocess.Popen(
-                    [sys.executable, '-m', 'SimpleHTTPServer', '9765'],
-                    stdout=devnull,
-                    stderr=devnull)
+                [sys.executable, '-m', 'SimpleHTTPServer', '9765'],
+                stdout=devnull,
+                stderr=devnull)
             time.sleep(0.25)
             url = 'http://localhost:9765/{path}'.format(path=uuid4().hex)
             self.assertRaises(
-                    HTTPError,
-                    lambda: D.process(stream=url))
+                HTTPError,
+                lambda: D.process(stream=url))
         finally:
             p.kill()
 
@@ -581,9 +605,9 @@ class BaseTest(object):
 
         _id = D.process(stream='mary')
         key = self.Settings.key_builder.build(
-                _id, D.stream.key, D.stream.version)
+            _id, D.stream.key, D.stream.version)
         self.assertEqual(
-                len(data_source['mary']), self.Settings.database.size(key))
+            len(data_source['mary']), self.Settings.database.size(key))
 
     def test_key_error_if_asking_for_size_of_unknown_key(self):
         class D(BaseModel, self.Settings):
@@ -648,7 +672,7 @@ class BaseTest(object):
 
         _id = Doc.process(stream='humpty')
         count_as_text = Doc.count(
-                _id=_id, decoder=Decoder(), persistence=self.Settings).read()
+            _id=_id, decoder=Decoder(), persistence=self.Settings).read()
         self.assertTrue(isinstance(count_as_text, str))
         self.assertTrue('{' in count_as_text)
 
@@ -660,7 +684,7 @@ class BaseTest(object):
 
         _id = D.process(stream='humpty')
         count_as_text = D.count(
-                _id=_id, decoder=Decoder(), persistence=self.Settings).read()
+            _id=_id, decoder=Decoder(), persistence=self.Settings).read()
         self.assertTrue(isinstance(count_as_text, str))
         self.assertTrue('{' in count_as_text)
 
@@ -831,7 +855,7 @@ class BaseTest(object):
 
     def test_can_explicitly_specify_identifier(self):
         settings = self.Settings.clone(
-                id_provider=UserSpecifiedIdProvider(key='_id'))
+            id_provider=UserSpecifiedIdProvider(key='_id'))
 
         class Document(BaseModel, settings):
             stream = Feature(TextStream, store=True)
@@ -879,7 +903,7 @@ class BaseTest(object):
             count1 = JSONFeature(WordCount, needs=t1, store=True)
             count2 = JSONFeature(WordCount, needs=t2, store=True)
             aggregate = JSONFeature( \
-                    WordCountAggregator, needs=[count1, count2], store=True)
+                WordCountAggregator, needs=[count1, count2], store=True)
 
         _id = Contrived.process(stream1='mary', stream2='humpty')
         doc = Contrived(_id)
@@ -903,7 +927,7 @@ class BaseTest(object):
             t1 = Feature(Timestamp, needs=stream, store=True)
             t2 = Feature(Timestamp, needs=stream, store=False)
             cat = Feature( \
-                    Concatenate, needs=[t1, t2], store=False)
+                Concatenate, needs=[t1, t2], store=False)
 
         _id = Timestamps.process(stream='cased')
         doc1 = Timestamps(_id)
@@ -920,20 +944,20 @@ class BaseTest(object):
 
         class DocumentWordCount(BaseModel, self.Settings):
             counts = Feature(
-                    FeatureAggregator,
-                    cls=Doc,
-                    feature=Doc.count,
-                    store=False)
+                FeatureAggregator,
+                cls=Doc,
+                feature=Doc.count,
+                store=False)
 
             total_count = JSONFeature(
-                    WordCountAggregator,
-                    store=True,
-                    needs=counts)
+                WordCountAggregator,
+                store=True,
+                needs=counts)
 
         Doc.process(stream='mary')
         Doc.process(stream='humpty')
         _id3 = DocumentWordCount.process(
-                counts=self.Settings.database)
+            counts=self.Settings.database)
         doc = DocumentWordCount(_id3)
         self.assertEqual(3, doc.total_count['a'])
 
@@ -949,15 +973,15 @@ class BaseTest(object):
 
         class DocumentWordCount(BaseModel, SingleDocumentDatabaseSettings):
             counts = Feature(
-                    FeatureAggregator,
-                    cls=Doc,
-                    feature=Doc.count,
-                    store=False)
+                FeatureAggregator,
+                cls=Doc,
+                feature=Doc.count,
+                store=False)
 
             total_count = JSONFeature(
-                    WordCountAggregator,
-                    store=True,
-                    needs=counts)
+                WordCountAggregator,
+                store=True,
+                needs=counts)
 
         Doc.process(stream='mary')
         Doc.process(stream='humpty')
@@ -976,8 +1000,8 @@ class BaseTest(object):
         self.assertTrue('mar' in data[:6])
         self.assertTrue('hum' in data[:6])
         self.assertEqual( \
-                len(data_source['mary']) + len(data_source['humpty']),
-                len(data))
+            len(data_source['mary']) + len(data_source['humpty']),
+            len(data))
         self.assertTrue(data.endswith('fall'))
 
     def test_smaller_chunks_downstream(self):
@@ -993,8 +1017,8 @@ class BaseTest(object):
             pass
 
         self.assertRaises(
-                KeyError,
-                lambda: Doc.process(stream1='mary'))
+            KeyError,
+            lambda: Doc.process(stream1='mary'))
 
     def test_raises_when_no_settings_base_class_and_iter_called(self):
         self.assertRaises(NoPersistenceSettingsError, lambda: list(Document))
@@ -1002,8 +1026,8 @@ class BaseTest(object):
     def test_get_meaningful_error_when_no_settings_base_class_and_process_is_called(
             self):
         self.assertRaises(
-                NoPersistenceSettingsError,
-                lambda: Document.process(stream='mary'))
+            NoPersistenceSettingsError,
+            lambda: Document.process(stream='mary'))
 
     def test_get_meaningful_error_when_no_settings_base_class_and_getattr_is_called(
             self):
@@ -1013,8 +1037,8 @@ class BaseTest(object):
         _id = Doc.process(stream='mary')
         doc = Document(_id)
         self.assertRaises(
-                NoPersistenceSettingsError,
-                lambda: doc.stream.read())
+            NoPersistenceSettingsError,
+            lambda: doc.stream.read())
 
     def test_can_process_and_retrieve_stored_feature(self):
         class Doc(Document, self.Settings):
@@ -1080,7 +1104,7 @@ class BaseTest(object):
             uppercase = Feature(ToUpper, needs=stream, store=True)
             lowercase = Feature(ToLower, needs=stream, store=False)
             cat = Feature( \
-                    Concatenate, needs=[uppercase, lowercase], store=False)
+                Concatenate, needs=[uppercase, lowercase], store=False)
 
         _id = Doc3.process(stream='cased')
         doc = Doc3(_id)
@@ -1092,7 +1116,7 @@ class BaseTest(object):
             uppercase = Feature(ToUpper, needs=stream, store=True)
             lowercase = Feature(ToLower, needs=stream, store=True)
             cat = Feature(
-                    Concatenate, needs=[uppercase, lowercase], store=False)
+                Concatenate, needs=[uppercase, lowercase], store=False)
 
         keyname = 'cased'
         _id = Split.process(stream=keyname)
@@ -1117,11 +1141,11 @@ class BaseTest(object):
         class Split(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
             uppercase = Feature(
-                    ToUpper, needs=stream, store=True, persistence=settings1)
+                ToUpper, needs=stream, store=True, persistence=settings1)
             lowercase = Feature(
-                    ToLower, needs=stream, store=True, persistence=settings2)
+                ToLower, needs=stream, store=True, persistence=settings2)
             cat = Feature(
-                    Concatenate, needs=[uppercase, lowercase], store=False)
+                Concatenate, needs=[uppercase, lowercase], store=False)
 
         keyname = 'cased'
         _id = Split.process(stream=keyname)
@@ -1205,7 +1229,7 @@ class BaseTest(object):
             stream = Feature(TextStream, store=True)
             uppercase = Feature(ToUpper, needs=stream, store=True)
             lowercase = Feature(
-                    ToLower, needs=stream, store=True, persistence=settings2)
+                ToLower, needs=stream, store=True, persistence=settings2)
 
         _id = A.process(stream='cased')
         doc = A(_id)
@@ -1219,7 +1243,7 @@ class BaseTest(object):
         db1 = InMemoryDatabase(key_builder=self.Settings.key_builder)
 
         settings = self.Settings.clone(
-                database=db1, id_provider=IntegerIdProvider())
+            database=db1, id_provider=IntegerIdProvider())
 
         class A(BaseModel, settings):
             stream = Feature(TextStream, store=True)
@@ -1265,9 +1289,9 @@ class BaseTest(object):
         class A(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
             uppercase = Feature(
-                    ToUpper, needs=stream, store=True, persistence=settings1)
+                ToUpper, needs=stream, store=True, persistence=settings1)
             lowercase = Feature(
-                    ToLower, needs=stream, store=True, persistence=settings2)
+                ToLower, needs=stream, store=True, persistence=settings2)
 
         _id = A.process(stream='mary')
         doc = A(_id)
@@ -1284,9 +1308,9 @@ class BaseTest(object):
         class A(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
             uppercase = Feature(
-                    ToUpper, needs=stream, store=True, persistence=settings1)
+                ToUpper, needs=stream, store=True, persistence=settings1)
             lowercase = Feature(
-                    ToLower, needs=stream, store=True, persistence=settings2)
+                ToLower, needs=stream, store=True, persistence=settings2)
 
         _id = A.process(stream='mary')
         _ids1 = set(db1.iter_ids())
@@ -1304,7 +1328,7 @@ class BaseTest(object):
         db = self.Settings.database
         key_builder = self.Settings.key_builder
         stream = db.read_stream(
-                key_builder.build(_id, 'lowercase', A.lowercase.version))
+            key_builder.build(_id, 'lowercase', A.lowercase.version))
         compressed = stream.read()
         self.assertTrue(len(compressed) < len(data_source['lorem']))
         doc = A(_id)
@@ -1329,7 +1353,7 @@ class FileSystemTest(BaseTest, unittest2.TestCase):
             id_provider = UuidProvider()
             key_builder = StringDelimitedKeyBuilder()
             database = FileSystemDatabase(
-                    path=self._dir, key_builder=key_builder)
+                path=self._dir, key_builder=key_builder)
 
         self.Settings = Settings
 
@@ -1345,9 +1369,9 @@ class LmdbTest(BaseTest, unittest2.TestCase):
             id_provider = UuidProvider()
             key_builder = StringDelimitedKeyBuilder()
             database = LmdbDatabase(
-                    path=self._dir,
-                    map_size=10000000,
-                    key_builder=key_builder)
+                path=self._dir,
+                map_size=10000000,
+                key_builder=key_builder)
 
         self.Settings = Settings
 

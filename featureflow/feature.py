@@ -1,9 +1,10 @@
+import inspect
 from datawriter import DataWriter, StringIODataWriter
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
     PickleEncoder
-from extractor import Graph
+from extractor import Graph, FunctionalNode, Node
 
 
 class Feature(object):
@@ -33,12 +34,30 @@ class Feature(object):
         self.decoder = decoder or Decoder()
         self.extractor_args = extractor_args
 
+        # if callable(extractor) and not issubclass(extractor, Node):
+        #     self.extractor = FunctionalNode
+        #     self.extractor_args = dict(func=extractor)
+        self._handle_callable_extractor()
+
         self.persistence = persistence
 
         if data_writer:
             self._data_writer = data_writer
         else:
             self._data_writer = DataWriter
+
+    def _handle_callable_extractor(self):
+        if inspect.isclass(self.extractor) \
+                and issubclass(self.extractor, Node):
+            return
+
+        if callable(self.extractor):
+            self.extractor_args = dict(func=self.extractor)
+            self.extractor = FunctionalNode
+            return
+
+        raise ValueError(
+            'extractor must be either a Node-derived class, or a callable')
 
     def __repr__(self):
         return '{cls}(key = {key}, store = {store})'.format(

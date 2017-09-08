@@ -151,6 +151,15 @@ class Node(object):
             yield None
 
 
+class FunctionalNode(Node):
+    def __init__(self, func, needs=None):
+        super(FunctionalNode, self).__init__(needs=needs)
+        self.func = func
+
+    def _process(self, data):
+        yield self.func(data)
+
+
 class Aggregator(object):
     """
     A mixin for Node-derived classes that addresses the case when the processing
@@ -217,10 +226,10 @@ class Graph(dict):
         intersection = set(kwargs.keys()) & set(roots.keys())
         if len(intersection) < len(roots):
             raise KeyError(
-                    (
-                        'the keys {kw} were provided to the process() method, but the' \
-                        + ' keys for the root extractors were {r}') \
-                        .format(kw=kwargs.keys(), r=roots.keys()))
+                (
+                    'the keys {kw} were provided to the process() method, but the' \
+                    + ' keys for the root extractors were {r}') \
+                    .format(kw=kwargs.keys(), r=roots.keys()))
 
         graph_args = dict((k, kwargs[k]) for k in intersection)
 

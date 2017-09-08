@@ -28,6 +28,7 @@ setup(
         install_requires=[
             'nose',
             'unittest2',
+            'certifi==2017.7.27.1',
             'requests',
             'lmdb',
             'redis'

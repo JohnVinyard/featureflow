@@ -26,17 +26,17 @@ class Feature(object):
         self.store = store
         self.encoder = encoder or IdentityEncoder
 
-        try:
-            self.needs = list(needs)
-        except TypeError:
-            self.needs = [] if needs is None else [needs]
+        if isinstance(needs, dict):
+            self.needs = needs
+        else:
+            try:
+                self.needs = list(needs)
+            except TypeError:
+                self.needs = [] if needs is None else [needs]
 
         self.decoder = decoder or Decoder()
         self.extractor_args = extractor_args
 
-        # if callable(extractor) and not issubclass(extractor, Node):
-        #     self.extractor = FunctionalNode
-        #     self.extractor_args = dict(func=extractor)
         self._handle_callable_extractor()
 
         self.persistence = persistence
@@ -56,8 +56,7 @@ class Feature(object):
             self.extractor = FunctionalNode
             return
 
-        raise ValueError(
-            'extractor must be either a Node-derived class, or a callable')
+        raise ValueError('extractor must be either a Noid')
 
     def __repr__(self):
         return '{cls}(key = {key}, store = {store})'.format(
@@ -67,12 +66,24 @@ class Feature(object):
         return self.__repr__()
 
     @property
+    def dependencies(self):
+        if isinstance(self.needs, dict):
+            return self.needs.values()
+        return self.needs
+
+    @property
     def version(self):
         # KLUDGE: Build a shallow version of the extractor.  Building a deep
         # version with re-usable code is more difficult, because
         # self._build_extractor relies on this version property, so there's
         # a circular dependency.
-        dependencies = [f.extractor(**f.extractor_args) for f in self.needs]
+        if isinstance(self.needs, dict):
+            dependencies = dict(
+                (k, v.extractor(**v.extractor_args))
+                for k, v in self.needs.iteritems())
+        else:
+            dependencies = [f.extractor(**f.extractor_args) for f in self.needs]
+
         e = self.extractor(needs=dependencies, **self.extractor_args)
         return e.version
 
@@ -98,9 +109,6 @@ class Feature(object):
                 data_writer=data_writer,
                 persistence=persistence,
                 **(extractor_args or self.extractor_args))
-
-    def add_dependency(self, feature):
-        self.needs.append(feature)
 
     def database(self, persistence):
         return (self.persistence or persistence).database
@@ -144,7 +152,7 @@ class Feature(object):
         if self.is_root:
             return False
 
-        return all([n._can_compute() for n in self.needs])
+        return all([n._can_compute() for n in self.dependencies])
 
     def __call__(self, _id=None, decoder=None, persistence=None):
         if decoder is None:
@@ -213,7 +221,7 @@ class Feature(object):
         nf = self.copy(
                 extractor=DecoderNode if is_cached else self.extractor,
                 store=root or should_store,
-                needs=None,
+                needs=dict() if isinstance(self.needs, dict) else [],
                 data_writer=data_writer,
                 persistence=self.persistence,
                 extractor_args=dict(decodifier=self.decoder, version=self.version) \
@@ -225,21 +233,43 @@ class Feature(object):
         features[self.key] = nf
 
         if not is_cached:
-            for n in self.needs:
-                n._partial(_id, features=features, persistence=persistence)
-                nf.add_dependency(features[n.key])
+            if isinstance(self.needs, dict):
+                needs = self.needs
+            else:
+                needs = dict((x.key, x) for x in self.needs)
+
+            for k, v in needs.iteritems():
+                v._partial(_id, features=features, persistence=persistence)
+
+                if isinstance(nf.needs, dict):
+                    nf.needs[k] = features[v.key]
+                else:
+                    nf.needs.append(features[v.key])
 
         return features
 
     def _depends_on(self, _id, graph, persistence):
-        needs = []
-        for f in self.needs:
+        needs = dict()
+
+        dependencies_are_dict = isinstance(self.needs, dict)
+
+        if dependencies_are_dict:
+            n = self.needs
+        else:
+            n = dict((x.key, x) for x in self.needs)
+
+        for k, f in n.iteritems():
             if f.key in graph:
-                needs.append(graph[f.key])
+                needs[k] = graph[f.key]
                 continue
+
             e = f._build_extractor(_id, graph, persistence)
-            needs.append(e)
-        return needs
+            needs[k] = e
+
+        if dependencies_are_dict:
+            return needs
+        else:
+            return needs.values()
 
     def _build_extractor(self, _id, graph, persistence):
         try:
@@ -249,6 +279,7 @@ class Feature(object):
 
         needs = self._depends_on(_id, graph, persistence)
         e = self.extractor(needs=needs, **self.extractor_args)
+
         if isinstance(e, DecoderNode):
             reader = self.reader(_id, self.key, persistence)
             setattr(e, '_reader', reader)

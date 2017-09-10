@@ -214,6 +214,26 @@ class Concatenate(Aggregator, Node):
         yield ''.join((data[id(n)] for n in self._needs))
 
 
+class ExplicitConcatenate(Aggregator, Node):
+    def __init__(self, needs=None):
+        super(ExplicitConcatenate, self).__init__(needs=needs)
+        self._dependencies = dict()
+        self._cache = dict()
+
+        for k, v in needs.iteritems():
+            self._dependencies[id(v)] = k
+            self._cache[k] = ''
+
+    def _enqueue(self, data, pusher):
+        k = self._dependencies[id(pusher)]
+        self._cache[k] += data
+
+    def _process(self, data):
+        lhs = data['lhs']
+        rhs = data['rhs']
+        yield lhs + rhs
+
+
 class WordCountAggregator(Aggregator, Node):
     def __init__(self, needs=None):
         super(WordCountAggregator, self).__init__(needs=needs)
@@ -354,6 +374,65 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_can_have_multiple_explicit_dependencies(self):
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(ToUpper, needs=stream, store=True)
+            lowercase = Feature(ToLower, needs=stream, store=True)
+            cat = Feature(
+                ExplicitConcatenate,
+                needs=dict(lhs=uppercase, rhs=lowercase),
+                store=False)
+
+        keyname = 'cased'
+        _id = Split.process(stream=keyname)
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+
+        class Split2(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(ToUpper, needs=stream, store=True)
+            lowercase = Feature(ToLower, needs=stream, store=True)
+            cat = Feature(
+                ExplicitConcatenate,
+                needs=dict(lhs=lowercase, rhs=uppercase),
+                store=False)
+
+        _id = Split2.process(stream=keyname)
+        doc = Split2(_id)
+
+        self.assertEqual('this is a test.THIS IS A TEST.', doc.cat.read())
+
+    def test_can_have_multiple_explicit_dependencies_stored_feature(self):
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(ToUpper, needs=stream, store=True)
+            lowercase = Feature(ToLower, needs=stream, store=True)
+            cat = Feature(
+                ExplicitConcatenate,
+                needs=dict(lhs=uppercase, rhs=lowercase),
+                store=True)
+
+        keyname = 'cased'
+        _id = Split.process(stream=keyname)
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+
+        class Split2(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(ToUpper, needs=stream, store=True)
+            lowercase = Feature(ToLower, needs=stream, store=True)
+            cat = Feature(
+                ExplicitConcatenate,
+                needs=dict(lhs=lowercase, rhs=uppercase),
+                store=True)
+
+        _id = Split2.process(stream=keyname)
+        doc = Split2(_id)
+
+        self.assertEqual('this is a test.THIS IS A TEST.', doc.cat.read())
 
     def test_can_compute_feature_directly_with_lambda(self):
         class Split(BaseModel, self.Settings):

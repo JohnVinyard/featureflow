@@ -24,16 +24,25 @@ class Node(object):
         self._cache = None
         self._listeners = []
 
-        try:
-            self._needs = list(needs)
-        except TypeError:
-            self._needs = [] if needs is None else [needs]
+        if isinstance(needs, dict):
+            self._needs = needs
+        else:
+            try:
+                self._needs = list(needs)
+            except TypeError:
+                self._needs = [] if needs is None else [needs]
 
-        for n in self._needs:
+        for n in self.dependencies:
             n.add_listener(self)
 
         self._finalized_dependencies = set()
         self._enqueued_dependencies = set()
+
+    @property
+    def dependencies(self):
+        if isinstance(self._needs, dict):
+            return self._needs.values()
+        return self._needs
 
     def __repr__(self):
         return self.__class__.__name__
@@ -76,7 +85,7 @@ class Node(object):
         return None
 
     def disconnect(self):
-        for e in self.needs:
+        for e in self.dependencies:
             e._listeners.remove(self)
 
     def _enqueue(self, data, pusher):
@@ -120,8 +129,10 @@ class Node(object):
 
     def _finish(self, pusher=None, queue=None):
         self._finalize(pusher)
-        if pusher in self._needs:
+
+        if pusher in self.dependencies:
             self._finalized_dependencies.add(id(pusher))
+
         if pusher:
             return
         queue.appendleft((
@@ -196,7 +207,7 @@ class Graph(dict):
     def subscriptions(self):
         subscriptions = defaultdict(list)
         for node in self.itervalues():
-            for n in node._needs:
+            for n in node.dependencies:
                 subscriptions[id(n)].append(node)
         return subscriptions
 
@@ -207,7 +218,7 @@ class Graph(dict):
         nodes = deque(self.leaves().values())
         while nodes:
             extractor = nodes.pop()
-            nodes.extendleft(extractor.needs)
+            nodes.extendleft(extractor.dependencies)
             try:
                 feature = mapping[extractor]
             except KeyError:

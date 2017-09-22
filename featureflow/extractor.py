@@ -26,6 +26,8 @@ class Node(object):
         self._listeners = []
 
         self._needs = dictify(needs)
+        self._dependecy_names = dict(
+            (id(v), k) for k, v in self._needs.iteritems())
 
         for n in self.dependencies:
             n.add_listener(self)
@@ -38,6 +40,9 @@ class Node(object):
         if isinstance(self._needs, dict):
             return self._needs.values()
         return self._needs
+
+    def _dependency_name(self, pusher):
+        return self._dependecy_names[id(pusher)]
 
     def __repr__(self):
         return self.__class__.__name__

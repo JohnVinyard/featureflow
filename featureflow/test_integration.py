@@ -217,15 +217,10 @@ class Concatenate(Aggregator, Node):
 class ExplicitConcatenate(Aggregator, Node):
     def __init__(self, needs=None):
         super(ExplicitConcatenate, self).__init__(needs=needs)
-        self._dependencies = dict()
-        self._cache = dict()
-
-        for k, v in needs.iteritems():
-            self._dependencies[id(v)] = k
-            self._cache[k] = ''
+        self._cache = defaultdict(str)
 
     def _enqueue(self, data, pusher):
-        k = self._dependencies[id(pusher)]
+        k = self._dependency_name(pusher)
         self._cache[k] += data
 
     def _process(self, data):

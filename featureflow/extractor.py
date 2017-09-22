@@ -2,6 +2,7 @@ from itertools import izip_longest
 import contextlib
 from collections import deque, defaultdict
 import inspect
+from util import dictify
 
 
 class InvalidProcessMethod(Exception):
@@ -24,13 +25,7 @@ class Node(object):
         self._cache = None
         self._listeners = []
 
-        if isinstance(needs, dict):
-            self._needs = needs
-        else:
-            try:
-                self._needs = list(needs)
-            except TypeError:
-                self._needs = [] if needs is None else [needs]
+        self._needs = dictify(needs)
 
         for n in self.dependencies:
             n.add_listener(self)
@@ -86,7 +81,10 @@ class Node(object):
 
     def disconnect(self):
         for e in self.dependencies:
-            e._listeners.remove(self)
+            try:
+                e._listeners.remove(self)
+            except ValueError:
+                pass
 
     def _enqueue(self, data, pusher):
         self._cache = data
@@ -186,6 +184,19 @@ class Aggregator(object):
         return super(Aggregator, self)._dequeue()
 
 
+class KeySelector(object):
+    """
+    A mixin for Node-derived classes that allows the extractor to process a
+    single key from the dictionary-like object it is passed
+    """
+    def __init__(self, aspect_key, needs=None):
+        super(KeySelector, self).__init__(needs=needs)
+        self.aspect_key = aspect_key
+
+    def _enqueue(self, data, pusher):
+        super(KeySelector, self)._enqueue(data[self.aspect_key], pusher)
+
+
 class NotEnoughData(Exception):
     """
     Exception thrown by extractors when they do not yet have enough data to
@@ -225,7 +236,10 @@ class Graph(dict):
                 continue
             if extractor.is_leaf and not feature.store:
                 extractor.disconnect()
-                del self[feature.key]
+                try:
+                    del self[feature.key]
+                except KeyError:
+                    pass
 
     def process(self, **kwargs):
         # get all root nodes (those that produce data, rather than consuming 

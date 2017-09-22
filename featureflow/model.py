@@ -25,6 +25,9 @@ class MetaModel(type):
             except AttributeError:
                 pass
 
+        for f in cls.features.values():
+            f._fixup_needs()
+
     @staticmethod
     def _ensure_persistence_settings(cls):
         if not issubclass(cls, PersistenceSettings):

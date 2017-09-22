@@ -211,7 +211,7 @@ class Concatenate(Aggregator, Node):
         self._cache[id(pusher)] += data
 
     def _process(self, data):
-        yield ''.join((data[id(n)] for n in self._needs))
+        yield ''.join((data[id(n)] for n in self._needs.values()))
 
 
 class ExplicitConcatenate(Aggregator, Node):
@@ -232,6 +232,14 @@ class ExplicitConcatenate(Aggregator, Node):
         lhs = data['lhs']
         rhs = data['rhs']
         yield lhs + rhs
+
+
+class UpperAndLower(Node):
+    def __init__(self, needs=None):
+        super(UpperAndLower, self).__init__(needs=needs)
+
+    def _process(self, data):
+        yield dict(upper=data.upper(), lower=data.lower())
 
 
 class WordCountAggregator(Aggregator, Node):
@@ -342,7 +350,6 @@ class FeatureAggregator(Node):
         db = data
         for key in db.iter_ids():
             try:
-                print self._cls, key
                 doc = self._cls(key)
                 yield getattr(doc, self._feature.key)
             except:
@@ -374,6 +381,31 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+
+    def test_can_split_dict_feature(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            both = Feature(UpperAndLower, needs=stream, store=False)
+            upper = Feature(Echo, needs=both.aspect('upper'), store=True)
+            lower = Feature(Echo, needs=both.aspect('lower'), store=True)
+
+        _id = Document.process(stream='cased')
+        doc = Document(_id)
+        self.assertEqual('this is a test.', doc.lower.read())
+        self.assertEqual('THIS IS A TEST.', doc.upper.read())
+
+    def test_can_split_on_dict_feature_unstored(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            both = Feature(UpperAndLower, needs=stream, store=False)
+            upper = Feature(Echo, needs=both.aspect('upper'), store=False)
+            lower = Feature(Echo, needs=both.aspect('lower'), store=False)
+
+        _id = Document.process(stream='cased')
+        doc = Document(_id)
+        self.assertEqual('this is a test.', doc.lower.read())
+        self.assertEqual('THIS IS A TEST.', doc.upper.read())
+
     def test_can_have_multiple_explicit_dependencies(self):
         class Split(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
@@ -1182,7 +1214,7 @@ class BaseTest(object):
             stream = Feature(TextStream, store=True)
             uppercase = Feature(ToUpper, needs=stream, store=True)
             lowercase = Feature(ToLower, needs=stream, store=False)
-            cat = Feature( \
+            cat = Feature(
                 Concatenate, needs=[uppercase, lowercase], store=False)
 
         _id = Doc3.process(stream='cased')

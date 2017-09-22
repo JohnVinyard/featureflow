@@ -4,7 +4,8 @@ from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
     PickleEncoder
-from extractor import Graph, FunctionalNode, Node
+from extractor import Graph, FunctionalNode, Node, KeySelector
+from util import dictify
 
 
 class Feature(object):
@@ -26,13 +27,7 @@ class Feature(object):
         self.store = store
         self.encoder = encoder or IdentityEncoder
 
-        if isinstance(needs, dict):
-            self.needs = needs
-        else:
-            try:
-                self.needs = list(needs)
-            except TypeError:
-                self.needs = [] if needs is None else [needs]
+        self.needs = needs
 
         self.decoder = decoder or Decoder()
         self.extractor_args = extractor_args
@@ -46,6 +41,27 @@ class Feature(object):
         else:
             self._data_writer = DataWriter
 
+    def aspect(self, aspect_key):
+        return Aspect(aspect_key, self)
+
+    def _fixup_needs(self):
+        self.needs = dictify(self.needs, lambda item: item.key)
+
+        for k, v in self.needs.iteritems():
+            try:
+                # the value is an Aspect
+                self.needs[k] = v.feature
+
+                class AspectExtractor(KeySelector, self.extractor):
+                    pass
+
+                self.extractor = AspectExtractor
+                self.extractor_args.update(aspect_key=v.aspect_key)
+
+            except AttributeError:
+                # the value is already just a feature
+                pass
+
     def _handle_callable_extractor(self):
         if inspect.isclass(self.extractor) \
                 and issubclass(self.extractor, Node):
@@ -56,20 +72,18 @@ class Feature(object):
             self.extractor = FunctionalNode
             return
 
-        raise ValueError('extractor must be either a Noid')
+        raise ValueError('extractor must be either a Node or a callable')
 
     def __repr__(self):
         return '{cls}(key = {key}, store = {store})'.format(
-                cls=self.__class__.__name__, **self.__dict__)
+            cls=self.__class__.__name__, **self.__dict__)
 
     def __str__(self):
         return self.__repr__()
 
     @property
     def dependencies(self):
-        if isinstance(self.needs, dict):
-            return self.needs.values()
-        return self.needs
+        return self.needs.values()
 
     @property
     def version(self):
@@ -99,16 +113,18 @@ class Feature(object):
         Use self as a template to build a new feature, replacing
         values in kwargs
         """
-        return Feature(
-                extractor or self.extractor,
-                needs=needs,
-                store=self.store if store is None else store,
-                encoder=self.encoder,
-                decoder=self.decoder,
-                key=self.key,
-                data_writer=data_writer,
-                persistence=persistence,
-                **(extractor_args or self.extractor_args))
+        f = Feature(
+            extractor or self.extractor,
+            needs=needs,
+            store=self.store if store is None else store,
+            encoder=self.encoder,
+            decoder=self.decoder,
+            key=self.key,
+            data_writer=data_writer,
+            persistence=persistence,
+            **(extractor_args or self.extractor_args))
+        f._fixup_needs()
+        return f
 
     def database(self, persistence):
         return (self.persistence or persistence).database
@@ -193,7 +209,7 @@ class Feature(object):
             e = feat._build_extractor(_id, g, persistence)
             if feat.key == self.key:
                 stream = e.find_listener(
-                        lambda x: isinstance(x, StringIODataWriter))
+                    lambda x: isinstance(x, StringIODataWriter))
                 if stream is not None:
                     stream = stream._stream
 
@@ -219,13 +235,13 @@ class Feature(object):
 
         should_store = self.store and not stored
         nf = self.copy(
-                extractor=DecoderNode if is_cached else self.extractor,
-                store=root or should_store,
-                needs=dict() if isinstance(self.needs, dict) else [],
-                data_writer=data_writer,
-                persistence=self.persistence,
-                extractor_args=dict(decodifier=self.decoder, version=self.version) \
-                    if is_cached else self.extractor_args)
+            extractor=DecoderNode if is_cached else self.extractor,
+            store=root or should_store,
+            needs=dict(),
+            data_writer=data_writer,
+            persistence=self.persistence,
+            extractor_args=dict(decodifier=self.decoder, version=self.version) \
+                if is_cached else self.extractor_args)
 
         if root:
             features = dict()
@@ -233,32 +249,16 @@ class Feature(object):
         features[self.key] = nf
 
         if not is_cached:
-            if isinstance(self.needs, dict):
-                needs = self.needs
-            else:
-                needs = dict((x.key, x) for x in self.needs)
-
-            for k, v in needs.iteritems():
+            for k, v in self.needs.iteritems():
                 v._partial(_id, features=features, persistence=persistence)
-
-                if isinstance(nf.needs, dict):
-                    nf.needs[k] = features[v.key]
-                else:
-                    nf.needs.append(features[v.key])
+                nf.needs[k] = features[v.key]
 
         return features
 
     def _depends_on(self, _id, graph, persistence):
         needs = dict()
 
-        dependencies_are_dict = isinstance(self.needs, dict)
-
-        if dependencies_are_dict:
-            n = self.needs
-        else:
-            n = dict((x.key, x) for x in self.needs)
-
-        for k, f in n.iteritems():
+        for k, f in self.needs.iteritems():
             if f.key in graph:
                 needs[k] = graph[f.key]
                 continue
@@ -266,10 +266,7 @@ class Feature(object):
             e = f._build_extractor(_id, graph, persistence)
             needs[k] = e
 
-        if dependencies_are_dict:
-            return needs
-        else:
-            return needs.values()
+        return needs
 
     def _build_extractor(self, _id, graph, persistence):
         try:
@@ -293,16 +290,27 @@ class Feature(object):
         graph['{key}_encoder'.format(**locals())] = encoder
 
         dw = self._data_writer(
-                needs=encoder,
-                _id=_id,
-                feature_name=self.key,
-                feature_version=self.version,
-                key_builder=self.keybuilder(persistence),
-                database=self.database(persistence),
-                event_log=self.event_log(persistence))
+            needs=encoder,
+            _id=_id,
+            feature_name=self.key,
+            feature_version=self.version,
+            key_builder=self.keybuilder(persistence),
+            database=self.database(persistence),
+            event_log=self.event_log(persistence))
 
         graph['{key}_writer'.format(**locals())] = dw
         return e
+
+
+class Aspect(object):
+    def __init__(self, aspect_key, feature):
+        super(Aspect, self).__init__()
+        self.aspect_key = aspect_key
+        self.feature = feature
+
+    @property
+    def key(self):
+        return self.feature.key
 
 
 class CompressedFeature(Feature):
@@ -314,13 +322,13 @@ class CompressedFeature(Feature):
             key=None,
             **extractor_args):
         super(CompressedFeature, self).__init__(
-                extractor,
-                needs=needs,
-                store=store,
-                encoder=BZ2Encoder,
-                decoder=BZ2Decoder(),
-                key=key,
-                **extractor_args)
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=BZ2Encoder,
+            decoder=BZ2Decoder(),
+            key=key,
+            **extractor_args)
 
 
 class PickleFeature(Feature):
@@ -332,13 +340,13 @@ class PickleFeature(Feature):
             key=None,
             **extractor_args):
         super(PickleFeature, self).__init__(
-                extractor,
-                needs=needs,
-                store=store,
-                encoder=PickleEncoder,
-                decoder=PickleDecoder(),
-                key=key,
-                **extractor_args)
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=PickleEncoder,
+            decoder=PickleDecoder(),
+            key=key,
+            **extractor_args)
 
 
 class JSONFeature(Feature):
@@ -351,13 +359,13 @@ class JSONFeature(Feature):
             encoder=JSONEncoder,
             **extractor_args):
         super(JSONFeature, self).__init__(
-                extractor,
-                needs=needs,
-                store=store,
-                encoder=encoder,
-                decoder=JSONDecoder(),
-                key=key,
-                **extractor_args)
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=encoder,
+            decoder=JSONDecoder(),
+            key=key,
+            **extractor_args)
 
 
 class TextFeature(Feature):
@@ -369,10 +377,10 @@ class TextFeature(Feature):
             key=None,
             **extractor_args):
         super(TextFeature, self).__init__(
-                extractor,
-                needs=needs,
-                store=store,
-                encoder=TextEncoder,
-                decoder=GreedyDecoder(),
-                key=key,
-                **extractor_args)
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=TextEncoder,
+            decoder=GreedyDecoder(),
+            key=key,
+            **extractor_args)

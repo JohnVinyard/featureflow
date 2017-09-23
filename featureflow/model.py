@@ -95,9 +95,16 @@ class BaseModel(object):
                 pass
 
     @classmethod
-    def exists(cls, _id, feature=None):
+    def exists(cls, _id=None, feature=None):
         if feature and not feature.store:
             raise ValueError('feature must have store=True')
+
+        if _id is None:
+            try:
+                _id = cls.id_provider.new_id()
+            except:
+                raise ValueError(
+                    '_id must be provided explicitly, or it must be static')
 
         feature = feature or filter(lambda f: f.store, cls.iter_features())[0]
         feature_key = feature.feature_key(_id, cls)

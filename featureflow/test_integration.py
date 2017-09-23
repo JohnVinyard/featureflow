@@ -376,7 +376,6 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
-
     def test_can_split_dict_feature(self):
         class Document(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
@@ -485,6 +484,20 @@ class BaseTest(object):
 
         self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
 
+    def test_can_check_if_document_exists_using_static_id(self):
+        settings = self.Settings.clone(
+            id_provider=StaticIdProvider('SOME_ID'))
+
+        class Document(BaseModel, settings):
+            stream = Feature(TextStream, store=True)
+            dam = Feature(Dam, needs=stream, store=False)
+            words = Feature(Tokenizer, needs=dam, store=False)
+            count = JSONFeature(WordCount, needs=words, store=False)
+
+        self.assertFalse(Document.exists())
+        Document.process(stream='humpty', _id='blah')
+        self.assertTrue(Document.exists())
+
     def test_can_check_if_document_exists_using_explicit_feature(self):
         settings = self.Settings.clone(
             id_provider=UserSpecifiedIdProvider(key='_id'))
@@ -497,6 +510,19 @@ class BaseTest(object):
 
         _id = Document.process(stream='humpty', _id='blah')
         self.assertTrue(Document.exists(_id, Document.stream))
+
+    def test_exists_raises_for_non_static_id_provider_and_no_id_provided(self):
+        settings = self.Settings.clone(
+            id_provider=UserSpecifiedIdProvider(key='_id'))
+
+        class Document(BaseModel, settings):
+            stream = Feature(TextStream, store=True)
+            dam = Feature(Dam, needs=stream, store=False)
+            words = Feature(Tokenizer, needs=dam, store=False)
+            count = JSONFeature(WordCount, needs=words, store=False)
+
+        Document.process(stream='humpty', _id='blah')
+        self.assertRaises(ValueError, lambda: Document.exists())
 
     def test_document_does_not_exist(self):
         settings = self.Settings.clone(

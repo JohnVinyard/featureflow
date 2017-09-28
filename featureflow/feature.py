@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import inspect
 from datawriter import DataWriter, StringIODataWriter
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
@@ -256,7 +257,7 @@ class Feature(object):
         return features
 
     def _depends_on(self, _id, graph, persistence):
-        needs = dict()
+        needs = OrderedDict()
 
         for k, f in self.needs.iteritems():
             if f.key in graph:

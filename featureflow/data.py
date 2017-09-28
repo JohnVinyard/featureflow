@@ -158,6 +158,37 @@ class InMemoryDatabase(Database):
         del self._dict[key]
 
 
+class LazyFile(object):
+    """
+    A file wrapper that won't create a file until some bytes have been written
+    """
+    def __init__(self, path):
+        super(LazyFile, self).__init__()
+        self.path = path
+        self._file = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, t, value, traceback):
+        if self._file is None:
+            return
+        self._file.close()
+
+    def close(self):
+        if self._file is None:
+            return
+        return self._file.close()
+
+    def write(self, data):
+        if not data:
+            return
+
+        if self._file is None:
+            self._file = open(self.path, 'wb')
+        self._file.write(data)
+
+
 class FileSystemDatabase(Database):
     def __init__(self, path=None, key_builder=None, createdirs=False):
         super(FileSystemDatabase, self).__init__(key_builder=key_builder)
@@ -166,7 +197,7 @@ class FileSystemDatabase(Database):
             os.makedirs(self._path)
 
     def write_stream(self, key, content_type):
-        return open(os.path.join(self._path, key), 'wb')
+        return LazyFile(os.path.join(self._path, key))
 
     def read_stream(self, key):
         try:

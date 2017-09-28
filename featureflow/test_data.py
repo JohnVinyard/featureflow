@@ -67,4 +67,21 @@ class FileSystemDatabaseTests(unittest2.TestCase):
 
     def test_does_not_create_path_when_not_asked(self):
         db = self._make_db(createdirs=False)
-        self.assertRaises(IOError, lambda: db.write_stream('key', 'text/plain'))
+
+        def write():
+            with db.write_stream('key', 'text/plain') as f:
+                f.write('value')
+
+        self.assertRaises(IOError, write)
+
+    def test_key_does_not_exist_when_no_bytes_written(self):
+        db = self._make_db(createdirs=True)
+        with db.write_stream('key', 'text/plain') as s:
+            pass
+        self.assertFalse('key' in db)
+
+    def test_key_does_not_exist_when_no_zero_bytes_written(self):
+        db = self._make_db(createdirs=True)
+        with db.write_stream('key', 'text/plain') as s:
+            s.write('')
+        self.assertFalse('key' in db)

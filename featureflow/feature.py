@@ -54,11 +54,12 @@ class Feature(object):
                 self.needs[k] = v.feature
 
                 class AspectExtractor(KeySelector, self.extractor):
-                    pass
+                    def __init__(self, *args, **kwargs):
+                        print args, kwargs
+                        super(AspectExtractor, self).__init__(*args, **kwargs)
 
                 self.extractor = AspectExtractor
                 self.extractor_args.update(aspect_key=v.aspect_key)
-
             except AttributeError:
                 # the value is already just a feature
                 pass

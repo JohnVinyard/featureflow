@@ -215,17 +215,22 @@ class Concatenate(Aggregator, Node):
 
 
 class ExplicitConcatenate(Aggregator, Node):
-    def __init__(self, needs=None):
+    def __init__(self, blarg=None, needs=None):
         super(ExplicitConcatenate, self).__init__(needs=needs)
+        self.blarg = blarg
         self._cache = defaultdict(str)
 
     def _enqueue(self, data, pusher):
-        print 'ENQUEUE', data, pusher
         k = self._dependency_name(pusher)
         self._cache[k] += data
 
+    def _last_chunk(self):
+        if self.blarg:
+            yield 'BLARG!'
+        else:
+            yield ''
+
     def _process(self, data):
-        print 'PROCESS', data
         lhs = data['lhs']
         rhs = data['rhs']
         yield lhs + rhs
@@ -417,6 +422,23 @@ class BaseTest(object):
         doc = Document(_id)
 
         self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+
+    def test_feature_with_aspect_dependencies_can_also_have_arguments(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            both = Feature(UpperAndLower, needs=stream, store=False)
+            upper = Feature(ToUpper, needs=stream, store=False)
+            cat = Feature(
+                ExplicitConcatenate,
+                blarg=True,
+                needs=dict(lhs=upper, rhs=both.aspect('lower')),
+                store=False)
+
+        keyname = 'cased'
+        _id = Document.process(stream=keyname)
+        doc = Document(_id)
+
+        self.assertEqual('THIS IS A TEST.this is a test.BLARG!', doc.cat.read())
 
     def test_can_have_multiple_explicit_dependencies(self):
         class Split(BaseModel, self.Settings):

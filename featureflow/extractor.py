@@ -194,8 +194,8 @@ class KeySelector(object):
     A mixin for Node-derived classes that allows the extractor to process a
     single key from the dictionary-like object it is passed
     """
-    def __init__(self, aspect_key, needs=None):
-        super(KeySelector, self).__init__(needs=needs)
+    def __init__(self, aspect_key, needs=None, **kwargs):
+        super(KeySelector, self).__init__(needs=needs, **kwargs)
         self.aspect_key = aspect_key
 
     def _enqueue(self, data, pusher):

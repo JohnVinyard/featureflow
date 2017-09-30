@@ -199,7 +199,17 @@ class KeySelector(object):
         self.aspect_key = aspect_key
 
     def _enqueue(self, data, pusher):
-        super(KeySelector, self)._enqueue(data[self.aspect_key], pusher)
+        try:
+            # the data is dictionary-like, and contains the aspect key
+            data = data[self.aspect_key]
+        except TypeError:
+            # the data is not a dictionary
+            pass
+        except KeyError:
+            # the data is dictionary-like, but doesn't contain the aspect key
+            pass
+
+        super(KeySelector, self)._enqueue(data, pusher)
 
 
 class NotEnoughData(Exception):

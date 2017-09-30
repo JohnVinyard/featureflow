@@ -220,10 +220,12 @@ class ExplicitConcatenate(Aggregator, Node):
         self._cache = defaultdict(str)
 
     def _enqueue(self, data, pusher):
+        print 'ENQUEUE', data, pusher
         k = self._dependency_name(pusher)
         self._cache[k] += data
 
     def _process(self, data):
+        print 'PROCESS', data
         lhs = data['lhs']
         rhs = data['rhs']
         yield lhs + rhs
@@ -399,6 +401,22 @@ class BaseTest(object):
         doc = Document(_id)
         self.assertEqual('this is a test.', doc.lower.read())
         self.assertEqual('THIS IS A TEST.', doc.upper.read())
+
+    def test_can_nest_aspect_call_inside_of_dict_dependency(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            both = Feature(UpperAndLower, needs=stream, store=False)
+            upper = Feature(ToUpper, needs=stream, store=False)
+            cat = Feature(
+                ExplicitConcatenate,
+                needs=dict(lhs=upper, rhs=both.aspect('lower')),
+                store=False)
+
+        keyname = 'cased'
+        _id = Document.process(stream=keyname)
+        doc = Document(_id)
+
+        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
 
     def test_can_have_multiple_explicit_dependencies(self):
         class Split(BaseModel, self.Settings):

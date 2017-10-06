@@ -4,17 +4,19 @@ from uuid import uuid4
 from data import StringDelimitedKeyBuilder
 import shutil
 import os
+from multiprocessing.pool import Pool
 
 
-class LmdbDatabaseTests(unittest2.TestCase):
-    def setUp(self):
-        self.path = '/tmp/{dir}'.format(dir=uuid4().hex)
+class EphemeralLmdb(object):
+    def __init__(self, dir=None):
+        super(EphemeralLmdb, self).__init__()
+        self.dir = dir or uuid4().hex
+        self.path = '/tmp/{dir}'.format(dir=self.dir)
         self.key_builder = StringDelimitedKeyBuilder()
         self.init_database()
-        self.value = os.urandom(1000)
         self.key = self.key_builder.build('id', 'feature', 'version')
 
-    def tearDown(self):
+    def clean_up(self):
         shutil.rmtree(self.path, ignore_errors=True)
 
     def build_database(self):
@@ -25,19 +27,54 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def init_database(self):
         self.db = self.build_database()
 
+    def copy(self):
+        return EphemeralLmdb(dir=self.dir)
+
+
+def write_key(d):
+    db = EphemeralLmdb(dir=d).db
+    key_builder = StringDelimitedKeyBuilder()
+    key = key_builder.build(uuid4().hex, 'feature', 'version')
+    value = os.urandom(100)
+    with db.write_stream(key, 'application/octet-stream') as ws:
+        ws.write(value)
+    return key, value
+
+
+class LmdbDatabaseTests(unittest2.TestCase):
+    def setUp(self):
+        self.value = os.urandom(1000)
+        self.init_database()
+
+    def tearDown(self):
+        self.ephemeral.clean_up()
+
+    def init_database(self, dir=None):
+        self.ephemeral = EphemeralLmdb(dir=dir)
+        self.dir = self.ephemeral.dir
+        self.db = self.ephemeral.db
+        self.key = self.ephemeral.key
+
     def write_key(self):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
             ws.write(self.value)
+
+    def test_keys_written_out_of_process_are_reflected_in_current_process(self):
+        pool = Pool(2)
+        pool.map(write_key, [self.dir for _ in xrange(10)])
+        _ids = list(self.db.iter_ids())
+        self.assertEqual(10, len(_ids))
 
     def test_key_error_is_raised_when_key_not_found(self):
         def x():
             with self.db.read_stream(self.key) as rs:
                 value = rs.read()
+
         self.assertRaises(KeyError, x)
 
     def test_can_read_from_another_instance(self):
         # first, open another instance
-        other_instance = self.build_database()
+        other_instance = self.ephemeral.copy().db
         # next write a key to the original instance
         self.write_key()
         # finally, read a key from the first-opened instance
@@ -52,7 +89,7 @@ class LmdbDatabaseTests(unittest2.TestCase):
             value = rs.read()
             self.assertEqual(1000, len(value))
         self.db.env.close()
-        self.init_database()
+        self.init_database(dir=self.dir)
         self.assertEqual(1, len(list(self.db.iter_ids())))
         with self.db.read_stream(self.key) as rs:
             value = rs.read()
@@ -89,5 +126,3 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def test_can_iterate_over_empty_database(self):
         _ids = list(self.db.iter_ids())
         self.assertEqual(0, len(_ids))
-
-

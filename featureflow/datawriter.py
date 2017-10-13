@@ -45,7 +45,11 @@ class DataWriter(BaseDataWriter):
         self._stream.close()
         if self.event_log is not None:
             self.event_log.append(
-                json.dumps({'_id': self._id, 'name': self.feature_name}))
+                json.dumps({
+                    '_id': self._id,
+                    'name': self.feature_name,
+                    'version': self.feature_version
+                }))
 
     def _process(self, data):
         yield self._stream.write(data)

@@ -1,4 +1,4 @@
-__version__ = '2.4.4'
+__version__ = '2.4.5'
 
 from model import BaseModel, ModelExistsError
 
@@ -31,6 +31,8 @@ from persistence import PersistenceSettings
 from iteratornode import IteratorNode
 
 from eventlog import EventLog, RedisChannel, InMemoryChannel
+
+from var import Var
 
 try:
     from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \

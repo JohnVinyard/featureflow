@@ -26,6 +26,9 @@ class InMemoryChannel(object):
 
         return gen()
 
+    def unsubscribe(self):
+        raise NotImplementedError()
+
     def publish(self, _id, message):
         message = json.dumps({'_id': _id, 'message': message})
         for generator in self.generators:
@@ -38,6 +41,9 @@ class RedisChannel(object):
         self.channel = channel
         self.r = redis.StrictRedis(host=host, port=port)
         self.p = self.r.pubsub(ignore_subscribe_messages=True)
+
+    def unsubscribe(self):
+        self.p.unsubscribe()
 
     def subscribe(self, raise_when_empty=False):
         if raise_when_empty:
@@ -77,6 +83,9 @@ class EventLog(object):
             txn.put(_id, data)
         self.channel.publish(_id, data)
         return _id
+
+    def unsubscribe(self):
+        self.channel.unsubscribe()
 
     def subscribe(self, last_id='', raise_when_empty=False):
         subscription = self.channel.subscribe(raise_when_empty=raise_when_empty)

@@ -77,10 +77,10 @@ class BaseModel(object):
         return decoded
 
     @classmethod
-    def _build_extractor(cls, _id):
+    def _build_extractor(cls, _id, **kwargs):
         g = Graph()
         for feature in cls.features.itervalues():
-            feature._build_extractor(_id, g, cls)
+            feature._build_extractor(_id, g, cls, **kwargs)
         return g
 
     @classmethod
@@ -125,7 +125,12 @@ class BaseModel(object):
                 '{_id} is already stored in the database'.format(
                     **locals()))
 
-        graph = cls._build_extractor(_id)
+        try:
+            del kwargs['_id']
+        except KeyError:
+            pass
+
+        graph = cls._build_extractor(_id, **kwargs)
         graph.remove_dead_nodes(cls.features.itervalues())
         try:
             graph.process(**kwargs)

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 
+from var import Var
 from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
 from iteratornode import IteratorNode
 from model import BaseModel, NoPersistenceSettingsError, ModelExistsError
@@ -1258,6 +1259,27 @@ class BaseTest(object):
         _id = Numbers.process(stream='numbers')
         doc = Numbers(_id)
         self.assertEqual('2468101214161820', doc.sumup.read())
+
+    def test_feature_that_takes_a_variable(self):
+
+        class Numbers(BaseModel, self.Settings):
+            stream = Feature(NumberStream, store=False)
+            add1 = Feature(Add, needs=stream, store=False, rhs=Var('rhs'))
+            stringify = Feature(
+                    lambda x: ''.join(map(str, x)), needs=add1, store=True)
+
+        _id = Numbers.process(stream='numbers', rhs=2)
+        doc = Numbers(_id)
+        self.assertEqual('234567891011', doc.stringify.read())
+
+    def test_raises_if_necessary_variable_is_not_provided(self):
+        class Numbers(BaseModel, self.Settings):
+            stream = Feature(NumberStream, store=False)
+            add1 = Feature(Add, needs=stream, store=False, rhs=Var('rhs'))
+            stringify = Feature(
+                    lambda x: ''.join(map(str, x)), needs=add1, store=True)
+
+        self.assertRaises(ValueError, lambda: Numbers.process(stream='numbers'))
 
     def test_feature_with_multiple_inputs_using_a_tuple(self):
         class Numbers(BaseModel, self.Settings):

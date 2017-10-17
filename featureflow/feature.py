@@ -1,3 +1,4 @@
+from var import Var
 from collections import OrderedDict
 import inspect
 from datawriter import DataWriter, StringIODataWriter
@@ -257,7 +258,7 @@ class Feature(object):
 
         return features
 
-    def _depends_on(self, _id, graph, persistence):
+    def _depends_on(self, _id, graph, persistence, **kwargs):
         needs = OrderedDict()
 
         for k, f in self.needs.iteritems():
@@ -265,19 +266,31 @@ class Feature(object):
                 needs[k] = graph[f.key]
                 continue
 
-            e = f._build_extractor(_id, graph, persistence)
+            e = f._build_extractor(_id, graph, persistence, **kwargs)
             needs[k] = e
 
         return needs
 
-    def _build_extractor(self, _id, graph, persistence):
+    def _build_extractor(self, _id, graph, persistence, **kwargs):
         try:
             return graph[self.key]
         except KeyError:
             pass
 
-        needs = self._depends_on(_id, graph, persistence)
-        e = self.extractor(needs=needs, **self.extractor_args)
+        needs = self._depends_on(_id, graph, persistence, **kwargs)
+
+        extractor_args = dict()
+        for k, v in self.extractor_args.iteritems():
+            if isinstance(v, Var) and v.name == k:
+                try:
+                    extractor_args[k] = kwargs[k]
+                except KeyError:
+                    raise ValueError('{k} is a Var, but it was not provided'
+                                     .format(**locals()))
+            else:
+                extractor_args[k] = v
+
+        e = self.extractor(needs=needs, **extractor_args)
 
         if isinstance(e, DecoderNode):
             reader = self.reader(_id, self.key, persistence)

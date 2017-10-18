@@ -2,7 +2,7 @@ import json
 from util import chunked
 from extractor import Node
 import bz2
-from cPickle import loads
+from dill import loads
 
 
 class Decoder(object):

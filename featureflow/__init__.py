@@ -1,4 +1,4 @@
-__version__ = '2.4.5'
+__version__ = '2.4.6'
 
 from model import BaseModel, ModelExistsError
 

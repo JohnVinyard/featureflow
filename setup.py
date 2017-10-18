@@ -26,6 +26,7 @@ setup(
         packages=['featureflow'],
         download_url=download_url,
         install_requires=[
+            'dill',
             'nose',
             'unittest2',
             'certifi==2017.7.27.1',

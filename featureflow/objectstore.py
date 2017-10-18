@@ -107,7 +107,7 @@ class ObjectStoreDatabase(Database):
                 headers={
                     'X-Auth-Token': self.token,
                     'X-CDN-Enabled': 'True',
-                    'X-TTL': 31536000
+                    'X-TTL': str(31536000)
                 })
         resp2.raise_for_status()
 

@@ -20,8 +20,13 @@ class WriteStream(object):
     def close(self):
         _id, db = self.db_getter(self.key)
         self.buf.seek(0)
+        data = self.buf.read()
+
+        if not data:
+            return
+
         with self.env.begin(db, write=True) as txn:
-            txn.put(_id, self.buf.read(), db=db)
+            txn.put(_id, data, db=db)
 
     def write(self, data):
         self.buf.write(data)

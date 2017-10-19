@@ -3,6 +3,7 @@ import requests
 import json
 from io import BytesIO
 import httplib
+import urllib
 
 
 class WriteStream(object):
@@ -114,12 +115,14 @@ class ObjectStoreDatabase(Database):
         self.cdn_uri = resp2.headers['x-cdn-uri']
 
     def _uri(self, key):
+        key = urllib.quote(key, safe='')
         return '{endpoint}/{container_name}/{key}'.format(
                 endpoint=self.endpoint,
                 container_name=self.container_name,
                 key=key)
 
     def _cdn_uri(self, key):
+        key = urllib.quote(key, safe='')
         return '{cdn_uri}/{key}'.format(
                 cdn_uri=self.cdn_uri,
                 key=key)
@@ -157,7 +160,7 @@ class ObjectStoreDatabase(Database):
         for whole_key in self._all_keys():
             _id, key, version = self.key_builder.decompose(whole_key)
             if _id not in seen:
-                yield _id
+                yield urllib.unquote(_id)
                 seen.add(_id)
 
     def __contains__(self, key):

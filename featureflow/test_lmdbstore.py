@@ -54,6 +54,7 @@ class LmdbDatabaseTests(unittest2.TestCase):
         self.dir = self.ephemeral.dir
         self.db = self.ephemeral.db
         self.key = self.ephemeral.key
+        self.key_builder = self.ephemeral.key_builder
 
     def write_key(self):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
@@ -126,3 +127,15 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def test_can_iterate_over_empty_database(self):
         _ids = list(self.db.iter_ids())
         self.assertEqual(0, len(_ids))
+
+    def test_does_not_create_key_when_no_bytes_written(self):
+        key = self.key_builder.build(uuid4().hex, 'feature', 'version')
+        with self.db.write_stream(key, 'application/octet-stream'):
+            pass
+        self.assertFalse(key in self.db)
+
+    def test_does_not_create_key_when_zero_bytes_written(self):
+        key = self.key_builder.build(uuid4().hex, 'feature', 'version')
+        with self.db.write_stream(key, 'application/octet-stream') as ws:
+            ws.write('')
+        self.assertFalse(key in self.db)

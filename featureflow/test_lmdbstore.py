@@ -122,7 +122,7 @@ class LmdbDatabaseTests(unittest2.TestCase):
     def test_invalid_seek_argument_raises(self):
         self.write_key()
         with self.db.read_stream(self.key) as rs:
-            self.assertRaises(IOError, lambda: rs.seek(0, 999))
+            self.assertRaises(ValueError, lambda: rs.seek(0, 999))
 
     def test_can_iterate_over_empty_database(self):
         _ids = list(self.db.iter_ids())

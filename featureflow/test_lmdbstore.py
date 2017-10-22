@@ -60,6 +60,21 @@ class LmdbDatabaseTests(unittest2.TestCase):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
             ws.write(self.value)
 
+    def test_can_instantiate_db_many_times_without_causing_max_readers_error(self):
+        for i in xrange(1000):
+            db = EphemeralLmdb(dir=self.dir).db
+
+            key = self.key_builder.build(uuid4().hex, 'feature', 'version')
+            value = os.urandom(1000)
+
+            with db.write_stream(key, 'application/octet-stream') as ws:
+                ws.write(value)
+
+            with db.read_stream(key) as rs:
+                v = rs.read()
+
+            db.close()
+
     def test_keys_written_out_of_process_are_reflected_in_current_process(self):
         pool = Pool(2)
         pool.map(write_key, [self.dir for _ in xrange(10)])

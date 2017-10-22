@@ -35,7 +35,6 @@ class LmdbDatabase(Database):
     def __init__(self, path, map_size=1000000000, key_builder=None):
         super(LmdbDatabase, self).__init__(key_builder=key_builder)
         self.path = path
-        print self.path
         self.env = lmdb.open(
             self.path,
             max_dbs=10,
@@ -46,6 +45,18 @@ class LmdbDatabase(Database):
 
         self.dbs = dict()
         self._init_db_cache()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self.env.close()
+
+    def __del__(self):
+        self.close()
 
     def _init_db_cache(self):
         with self.env.begin() as txn:

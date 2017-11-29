@@ -657,6 +657,19 @@ class BaseTest(object):
         self.assertEqual(3, len(l))
         self.assertTrue(all(isinstance(x, D) for x in l))
 
+    def test_can_choose_random_document(self):
+        class D(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+
+        D.process(stream='mary')
+        D.process(stream='humpty')
+        D.process(stream='cased')
+
+        random = D.random()
+        self.assertIsInstance(random, D)
+
     def test_can_use_node_that_validates_its_dependency_list(self):
         class D1(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

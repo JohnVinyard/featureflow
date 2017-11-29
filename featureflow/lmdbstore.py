@@ -1,6 +1,7 @@
 import lmdb
 from data import Database
 from io import BytesIO
+from random import choice
 
 
 class WriteStream(object):

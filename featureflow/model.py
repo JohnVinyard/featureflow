@@ -1,6 +1,7 @@
 from extractor import Graph
 from feature import Feature
 from persistence import PersistenceSettings
+from random import choice
 
 
 class MetaModel(type):
@@ -93,6 +94,11 @@ class BaseModel(object):
                 del cls.database[key]
             except:
                 pass
+
+    @classmethod
+    def random(cls):
+        all_ids = list(cls.database.iter_ids())
+        return cls(_id=choice(all_ids))
 
     @classmethod
     def exists(cls, _id=None, feature=None):

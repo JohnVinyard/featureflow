@@ -93,6 +93,12 @@ class Database(object):
     def read_stream(self, key):
         raise NotImplementedError()
 
+    def random(self):
+        """
+        Return the read stream of a random key
+        """
+        raise NotImplementedError()
+
     def size(self, key):
         raise NotImplementedError()
 

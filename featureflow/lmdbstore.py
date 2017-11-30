@@ -1,7 +1,7 @@
 import lmdb
 from data import Database
 from io import BytesIO
-from random import choice
+import os
 
 
 class WriteStream(object):
@@ -45,7 +45,6 @@ class LmdbDatabase(Database):
             metasync=True)
 
         self.dbs = dict()
-        self._init_db_cache()
 
     def __enter__(self):
         return self

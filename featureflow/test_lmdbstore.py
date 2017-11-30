@@ -41,6 +41,10 @@ def write_key(d):
     return key, value
 
 
+def db_count(d):
+    return len(list(EphemeralLmdb(dir=d).db.iter_ids()))
+
+
 class LmdbDatabaseTests(unittest2.TestCase):
     def setUp(self):
         self.value = os.urandom(1000)
@@ -60,7 +64,8 @@ class LmdbDatabaseTests(unittest2.TestCase):
         with self.db.write_stream(self.key, 'application/octet-stream') as ws:
             ws.write(self.value)
 
-    def test_can_instantiate_db_many_times_without_causing_max_readers_error(self):
+    def test_can_instantiate_db_many_times_without_causing_max_readers_error(
+            self):
         for i in xrange(1000):
             db = EphemeralLmdb(dir=self.dir).db
 
@@ -80,6 +85,15 @@ class LmdbDatabaseTests(unittest2.TestCase):
         pool.map(write_key, [self.dir for _ in xrange(10)])
         _ids = list(self.db.iter_ids())
         self.assertEqual(10, len(_ids))
+
+    def test_can_list_keys_from_multiple_processes(self):
+        pool = Pool(4)
+        for i in xrange(10):
+            write_key(self.dir)
+
+        counts = pool.map(db_count, [self.dir for _ in xrange(10)])
+
+        self.assertEqual([10] * 10, counts)
 
     def test_key_error_is_raised_when_key_not_found(self):
         def x():

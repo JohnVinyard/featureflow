@@ -1279,7 +1279,7 @@ class BaseTest(object):
             stream = Feature(NumberStream, store=False)
             add1 = Feature(Add, needs=stream, store=False, rhs=Var('rhs'))
             stringify = Feature(
-                    lambda x: ''.join(map(str, x)), needs=add1, store=True)
+                lambda x: ''.join(map(str, x)), needs=add1, store=True)
 
         _id = Numbers.process(stream='numbers', rhs=2)
         doc = Numbers(_id)
@@ -1290,7 +1290,7 @@ class BaseTest(object):
             stream = Feature(NumberStream, store=False)
             add1 = Feature(Add, needs=stream, store=False, rhs=Var('rhs'))
             stringify = Feature(
-                    lambda x: ''.join(map(str, x)), needs=add1, store=True)
+                lambda x: ''.join(map(str, x)), needs=add1, store=True)
 
         self.assertRaises(ValueError, lambda: Numbers.process(stream='numbers'))
 

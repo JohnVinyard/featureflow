@@ -43,7 +43,7 @@ class LmdbDatabase(Database):
             writemap=True,
             map_async=True,
             metasync=True)
-
+        self.env.reader_check()
         self.dbs = dict()
 
     def __enter__(self):

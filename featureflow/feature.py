@@ -173,6 +173,22 @@ class Feature(object):
 
         return all([n._can_compute() for n in self.dependencies])
 
+    def _compute(self, _id=None, persistence=None):
+        graph, stream = self._build_partial(_id, persistence)
+
+        kwargs = dict()
+        for k, extractor in graph.roots().iteritems():
+            try:
+                kwargs[k] = extractor._reader
+            except AttributeError:
+                kwargs[k] = self.reader(_id, k, persistence)
+
+        graph.process(**kwargs)
+        return stream
+
+    def compute(self, _id, persistence):
+        self._compute(_id, persistence)
+
     def __call__(self, _id=None, decoder=None, persistence=None):
         if decoder is None:
             decoder = self.decoder
@@ -187,21 +203,12 @@ class Feature(object):
         if not self._can_compute():
             raise AttributeError('%s cannot be computed' % self.key)
 
-        graph, stream = self._build_partial(_id, persistence)
+        stream = self._compute(_id, persistence)
 
-        kwargs = dict()
-        for k, extractor in graph.roots().iteritems():
-            try:
-                kwargs[k] = extractor._reader
-            except AttributeError:
-                kwargs[k] = self.reader(_id, k, persistence)
-
-        graph.process(**kwargs)
         if stream is None:
             stream = self.reader(_id, self.key, persistence)
 
         stream.seek(0)
-
         decoded = decoder(stream)
         return decoded
 

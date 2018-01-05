@@ -711,6 +711,35 @@ class BaseTest(object):
         v2 = D2(_id).timestamp
         self.assertNotEqual(v1, v2)
 
+    def test_can_force_recompute_without_reading_back_data(self):
+        class D1(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+            timestamp = JSONFeature(
+                TimestampEmitter,
+                version='1',
+                needs=stream,
+                store=True)
+
+        class D2(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = JSONFeature(WordCount, needs=words, store=True)
+            timestamp = JSONFeature(
+                TimestampEmitter,
+                version='2',
+                needs=stream,
+                store=True)
+
+        _id = D1.process(stream='mary')
+        D2.timestamp.compute(_id=_id, persistence=D2)
+
+        database = self.Settings.database
+        key_builder = self.Settings.key_builder
+        key = key_builder.build(_id, 'timestamp', '2')
+        self.assertTrue(key in database)
+
     def test_can_iterate_over_database(self):
         class D(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

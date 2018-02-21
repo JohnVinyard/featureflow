@@ -42,7 +42,10 @@ class DataWriter(BaseDataWriter):
         return self
 
     def __exit__(self, t, value, traceback):
-        self._stream.close()
+        try:
+            self._stream.close()
+        except (IOError, ValueError):
+            pass
         if self.event_log is not None:
             self.event_log.append(
                 json.dumps({
@@ -53,6 +56,32 @@ class DataWriter(BaseDataWriter):
 
     def _process(self, data):
         yield self._stream.write(data)
+
+
+class ClobberDataWriter(DataWriter):
+    def __init__(
+            self,
+            needs=None,
+            _id=None,
+            feature_name=None,
+            feature_version=None,
+            key_builder=None,
+            database=None,
+            event_log=None):
+        super(ClobberDataWriter, self).__init__(
+            needs=needs,
+            _id=_id,
+            feature_name=feature_name,
+            feature_version=feature_version,
+            key_builder=key_builder,
+            database=database,
+            event_log=event_log)
+
+    def _process(self, data):
+        self._stream = self.database.write_stream(self.key, self.content_type)
+        x = self._stream.write(data)
+        self._stream.close()
+        yield x
 
 
 class StringIODataWriter(BaseDataWriter):

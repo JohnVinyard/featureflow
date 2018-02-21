@@ -10,7 +10,9 @@ from var import Var
 from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
 from iteratornode import IteratorNode
 from model import BaseModel, NoPersistenceSettingsError, ModelExistsError
-from feature import Feature, JSONFeature, CompressedFeature
+from feature import \
+    Feature, JSONFeature, CompressedFeature, ClobberJSONFeature, \
+    ClobberPickleFeature
 from data import *
 from bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
@@ -343,6 +345,17 @@ class WordCount(Aggregator, Node):
             self._cache[word.lower()] += 1
 
 
+class IncrementalWordCount(Node):
+    def __init__(self, needs=None):
+        super(IncrementalWordCount, self).__init__(needs=needs)
+        self.count = defaultdict(int)
+
+    def _process(self, data):
+        for word in data:
+            self.count[word.lower()] += 1
+        yield self.count
+
+
 class FeatureAggregator(Node):
     def __init__(self, cls=None, feature=None, needs=None):
         super(FeatureAggregator, self).__init__(needs=needs)
@@ -384,6 +397,28 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_can_overwrite_instead_of_append_json_feature_data(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = ClobberJSONFeature(
+                IncrementalWordCount, needs=words, store=True)
+
+        _id = Document.process(stream='lorem')
+        doc = Document(_id)
+        self.assertEqual(3, doc.count['ut'])
+
+    def test_can_overwrite_instead_of_append_pickle_feature_data(self):
+        class Document(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = ClobberPickleFeature(
+                IncrementalWordCount, needs=words, store=True)
+
+        _id = Document.process(stream='lorem')
+        doc = Document(_id)
+        self.assertEqual(3, doc.count['ut'])
+
     def test_can_split_dict_feature(self):
         class Document(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)

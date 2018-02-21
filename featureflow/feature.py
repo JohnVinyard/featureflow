@@ -1,7 +1,7 @@
 from var import Var
 from collections import OrderedDict
 import inspect
-from datawriter import DataWriter, StringIODataWriter
+from datawriter import DataWriter, StringIODataWriter, ClobberDataWriter
 from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
 from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
@@ -360,6 +360,7 @@ class PickleFeature(Feature):
             needs=None,
             store=False,
             key=None,
+            data_writer=None,
             **extractor_args):
         super(PickleFeature, self).__init__(
             extractor,
@@ -368,6 +369,24 @@ class PickleFeature(Feature):
             encoder=PickleEncoder,
             decoder=PickleDecoder(),
             key=key,
+            data_writer=data_writer,
+            **extractor_args)
+
+
+class ClobberPickleFeature(PickleFeature):
+    def __init__(
+            self,
+            extractor,
+            needs=None,
+            store=False,
+            key=None,
+            **extractor_args):
+        super(ClobberPickleFeature, self).__init__(
+            extractor,
+            needs=needs,
+            store=store,
+            key=key,
+            data_writer=ClobberDataWriter,
             **extractor_args)
 
 
@@ -379,6 +398,7 @@ class JSONFeature(Feature):
             store=False,
             key=None,
             encoder=JSONEncoder,
+            data_writer=None,
             **extractor_args):
         super(JSONFeature, self).__init__(
             extractor,
@@ -387,6 +407,26 @@ class JSONFeature(Feature):
             encoder=encoder,
             decoder=JSONDecoder(),
             key=key,
+            data_writer=data_writer,
+            **extractor_args)
+
+
+class ClobberJSONFeature(JSONFeature):
+    def __init__(
+            self,
+            extractor,
+            needs=None,
+            store=False,
+            key=None,
+            encoder=JSONEncoder,
+            **extractor_args):
+        super(ClobberJSONFeature, self).__init__(
+            extractor,
+            needs=needs,
+            store=store,
+            encoder=encoder,
+            key=key,
+            data_writer=ClobberDataWriter,
             **extractor_args)
 
 

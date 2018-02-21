@@ -21,7 +21,7 @@ class TextEncoder(IdentityEncoder):
         super(TextEncoder, self).__init__(needs=needs)
 
 
-class JSONEncoder(Aggregator, Node):
+class JSONEncoder(Node):
     content_type = 'application/json'
 
     def __init__(self, needs=None):
@@ -31,7 +31,7 @@ class JSONEncoder(Aggregator, Node):
         yield json.dumps(data)
 
 
-class PickleEncoder(Aggregator, Node):
+class PickleEncoder(Node):
     content_type = 'application/octet-stream'
 
     def __init__(self, needs=None):

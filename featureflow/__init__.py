@@ -3,7 +3,7 @@ __version__ = '2.6.9'
 from model import BaseModel, ModelExistsError
 
 from feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
-    PickleFeature
+    PickleFeature, ClobberPickleFeature, ClobberJSONFeature
 
 from extractor import Node, Graph, Aggregator, NotEnoughData
 

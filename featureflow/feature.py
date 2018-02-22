@@ -56,7 +56,6 @@ class Feature(object):
 
                 class AspectExtractor(KeySelector, self.extractor):
                     def __init__(self, *args, **kwargs):
-                        print args, kwargs
                         super(AspectExtractor, self).__init__(*args, **kwargs)
 
                 self.extractor = AspectExtractor
@@ -304,6 +303,7 @@ class Feature(object):
             setattr(e, '_reader', reader)
 
         graph[self.key] = e
+
         if not self.store:
             return e
 

@@ -92,11 +92,11 @@ class LmdbDatabase(Database):
 
     def read_stream(self, key):
         _id, db = self._get_read_db(key)
+
         with self.env.begin(buffers=True) as txn:
             buf = txn.get(_id, db=db)
-
-        if buf is None:
-            raise KeyError(key)
+            if buf is None:
+                raise KeyError(key)
 
         # POSSIBLE BUG:  Is it safe to keep the buffer around after the
         # transaction is complete?
@@ -104,15 +104,15 @@ class LmdbDatabase(Database):
 
     def size(self, key):
         _id, db = self._get_read_db(key)
+        l = None
+
         with self.env.begin(buffers=True) as txn:
             buf = txn.get(_id, db=db)
+            if buf is None:
+                raise KeyError(key)
+            l = len(buf)
 
-        if buf is None:
-            raise KeyError(key)
-
-        # POSSIBLE BUG:  Is it safe to keep the buffer around after the
-        # transaction is complete?
-        return len(buf)
+        return l
 
     def _get_any_db(self):
 

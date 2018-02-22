@@ -106,5 +106,8 @@ class StringIODataWriter(BaseDataWriter):
         self.content_type = needs.content_type
         self._stream = StringIO()
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self._stream
+
     def _process(self, data):
         yield self._stream.write(data)

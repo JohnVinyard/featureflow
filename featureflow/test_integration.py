@@ -346,14 +346,20 @@ class WordCount(Aggregator, Node):
 
 
 class IncrementalWordCount(Node):
-    def __init__(self, needs=None):
+    def __init__(self, needs=None, raise_for_chunk=None):
         super(IncrementalWordCount, self).__init__(needs=needs)
         self.count = defaultdict(int)
+        self.raise_for_chunk = raise_for_chunk
+        self._chunk = 0
 
     def _process(self, data):
+        if self._chunk == self.raise_for_chunk:
+            raise Exception('Raising for chunk {c}'.format(c=self._chunk))
+
         for word in data:
             self.count[word.lower()] += 1
         yield self.count
+        self._chunk += 1
 
 
 class FeatureAggregator(Node):
@@ -397,6 +403,31 @@ class MultipleRoots(BaseModel):
 
 
 class BaseTest(object):
+    def test_clobber_feature_does_not_delete_previous_iteration_of_data(self):
+
+        settings = self.Settings.clone(
+            id_provider=UserSpecifiedIdProvider(key='_id'))
+
+        class Document(BaseModel, settings):
+            stream = Feature(TextStream, store=True)
+            words = Feature(Tokenizer, needs=stream, store=False)
+            count = ClobberJSONFeature(
+                IncrementalWordCount,
+                needs=words,
+                store=True,
+                raise_for_chunk=2)
+
+        _id = 'doc_id'
+        try:
+            Document.process(stream='lorem', _id=_id)
+        except Exception:
+            pass
+
+        count_key = Document.count.feature_key(_id, Document)
+        self.assertTrue(
+            count_key in Document.database,
+            'Database should still contain {count_key}'.format(**locals()))
+
     def test_can_overwrite_instead_of_append_json_feature_data(self):
         class Document(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)

@@ -41,18 +41,35 @@ class DataWriter(BaseDataWriter):
         self._stream = self.database.write_stream(self.key, self.content_type)
         return self
 
-    def __exit__(self, t, value, traceback):
+    def _close_stream(self):
         try:
             self._stream.close()
         except (IOError, ValueError):
             pass
-        if self.event_log is not None:
-            self.event_log.append(
-                json.dumps({
-                    '_id': self._id,
-                    'name': self.feature_name,
-                    'version': self.feature_version
-                }))
+
+    def _cleanup_after_error(self):
+        try:
+            del self.database[self.key]
+        except:
+            pass
+
+    def _log_events(self):
+        if self.event_log is None:
+            return
+
+        self.event_log.append(
+            json.dumps({
+                '_id': self._id,
+                'name': self.feature_name,
+                'version': self.feature_version
+            }))
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._close_stream()
+        if exc_type:
+            self._cleanup_after_error()
+            return
+        self._log_events()
 
     def _process(self, data):
         yield self._stream.write(data)
@@ -76,6 +93,12 @@ class ClobberDataWriter(DataWriter):
             key_builder=key_builder,
             database=database,
             event_log=event_log)
+
+    def _cleanup_after_error(self):
+        # since we're overwriting previous iterations of the data on each
+        # chunk, we expect the existing version to be valid, so we're not
+        # going to delete anything
+        pass
 
     def _process(self, data):
         self._stream = self.database.write_stream(self.key, self.content_type)

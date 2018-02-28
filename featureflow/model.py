@@ -85,17 +85,6 @@ class BaseModel(object):
         return g
 
     @classmethod
-    def _rollback(cls, _id):
-        for f in cls.features.itervalues():
-            if not f.store:
-                continue
-            key = cls.key_builder.build(_id, f.key, f.version)
-            try:
-                del cls.database[key]
-            except:
-                pass
-
-    @classmethod
     def random(cls):
         all_ids = list(cls.database.iter_ids())
         return cls(_id=choice(all_ids))
@@ -138,9 +127,6 @@ class BaseModel(object):
 
         graph = cls._build_extractor(_id, **kwargs)
         graph.remove_dead_nodes(cls.features.itervalues())
-        try:
-            graph.process(**kwargs)
-            return _id
-        except Exception:
-            cls._rollback(_id)
-            raise
+
+        graph.process(**kwargs)
+        return _id

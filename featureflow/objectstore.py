@@ -30,6 +30,10 @@ class WriteStream(object):
                 })
 
     def close(self):
+        if self.buf.tell() == 0:
+            # no bytes have been written to the stream
+            return
+
         self.buf.seek(0)
         resp = self._put()
         if resp.status_code == httplib.UNAUTHORIZED:
@@ -47,9 +51,11 @@ class ObjectStoreDatabase(Database):
             username,
             api_key,
             region,
+            cdn_ttl_seconds=15 * 60,
             key_builder=None):
 
         super(ObjectStoreDatabase, self).__init__(key_builder=key_builder)
+        self.cdn_ttl_seconds = cdn_ttl_seconds
         self.region = region
         self.api_key = api_key
         self.username = username
@@ -108,7 +114,7 @@ class ObjectStoreDatabase(Database):
                 headers={
                     'X-Auth-Token': self.token,
                     'X-CDN-Enabled': 'True',
-                    'X-TTL': str(31536000)
+                    'X-TTL': str(self.cdn_ttl_seconds)
                 })
         resp2.raise_for_status()
 

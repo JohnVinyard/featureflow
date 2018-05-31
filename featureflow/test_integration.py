@@ -577,6 +577,108 @@ class BaseTest(object):
 
         self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
 
+    def test_functional_node_raises_when_code_changes_and_cannot_recompute(self):
+
+        def mutate(x):
+            return x.upper()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
+        def mutate(x):
+            return x.lower()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        doc = Split(_id)
+
+        self.assertRaises(AttributeError, lambda: doc.uppercase.read())
+
+    def test_functional_node_is_recomputed_when_code_changes(self):
+
+        def mutate(x):
+            return x.upper()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
+        def mutate(x):
+            return x.lower()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        doc = Split(_id)
+
+        self.assertEqual('this is a test.', doc.uppercase.read())
+
+    def test_functional_node_is_recomputed_when_code_changes(self):
+
+        def mutate(x):
+            return x.upper()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
+        def mutate(x):
+            return x.lower()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True)
+            uppercase = Feature(mutate, needs=stream, store=True)
+
+        doc = Split(_id)
+
+        self.assertEqual('this is a test.', doc.uppercase.read())
+
+    def test_functional_node_is_recomputed_when_free_variable_changes(self):
+
+        a = 10
+        b = 20
+
+        def mutate(x):
+            return x.upper() + str(a) + str(b)
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=True, chunksize=100)
+            uppercase = Feature(
+                mutate,
+                needs=stream,
+                store=True,
+                closure_fingerprint=lambda d: str(d['a']))
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.1020', doc.uppercase.read())
+
+        a = 20
+
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.2020', doc.uppercase.read())
+
     def test_can_compute_feature_directly_with_callable(self):
         class FancyUpperCase(object):
             def __call__(self, x):

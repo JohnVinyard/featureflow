@@ -70,7 +70,8 @@ class Feature(object):
             return
 
         if callable(self.extractor):
-            self.extractor_args = dict(func=self.extractor)
+            self.extractor_args = dict(
+                func=self.extractor, **self.extractor_args)
             self.extractor = FunctionalNode
             return
 
@@ -159,18 +160,19 @@ class Feature(object):
     def content_type(self):
         return self.encoder.content_type
 
-    def _can_compute(self):
+    def _can_compute(self, _id, persistence):
         """
         Return true if this feature stored, or is unstored, but can be computed
         from stored dependencies
         """
-        if self.store:
+        if self.store and self._stored(_id, persistence):
             return True
 
         if self.is_root:
             return False
 
-        return all([n._can_compute() for n in self.dependencies])
+        return all(
+            [n._can_compute(_id, persistence) for n in self.dependencies])
 
     def _compute(self, _id=None, persistence=None):
         graph, stream = self._build_partial(_id, persistence)
@@ -199,7 +201,7 @@ class Feature(object):
         except KeyError:
             pass
 
-        if not self._can_compute():
+        if not self._can_compute(_id, persistence):
             raise AttributeError('%s cannot be computed' % self.key)
 
         stream = self._compute(_id, persistence)

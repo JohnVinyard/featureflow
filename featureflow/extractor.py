@@ -3,6 +3,7 @@ import contextlib
 from collections import deque, defaultdict
 import inspect
 from util import dictify
+from hashlib import md5
 
 
 class InvalidProcessMethod(Exception):
@@ -166,9 +167,55 @@ class Node(object):
 
 
 class FunctionalNode(Node):
-    def __init__(self, func, needs=None):
+    def __init__(self, func, needs=None, closure_fingerprint=None):
+        """
+        `FunctionalNode` makes it possible to specify a stateless processing
+        node using a simple Python function (or callable).
+
+        Args:
+            func (callable): A callable to stand in for the `_process()` method
+            needs (Node or List of Node): Processing nodes on which this one
+                depends
+            closure_fingerprint (callable): An optional callable that takes a
+                dictionary of closed-over variable names and their values, and
+                returns a string or buffer object that may be added to the hash
+                that will constitute the version number
+        """
         super(FunctionalNode, self).__init__(needs=needs)
+        self.closure_fingerprint = closure_fingerprint
         self.func = func
+
+    @property
+    def version(self):
+        """
+        Compute the version identifier for this functional node using the
+        func code and local names.  Optionally, also allow closed-over variable
+        values to affect the version number when closure_fingerprint is
+        specified
+        """
+        try:
+            f = self.func.__call__.func_code
+        except AttributeError:
+            f = self.func.func_code
+
+        h = md5()
+        h.update(f.co_code)
+        h.update(str(f.co_names))
+
+        try:
+            closure = self.func.__closure__
+        except AttributeError:
+            return h.hexdigest()
+
+        if closure is None or self.closure_fingerprint is None:
+            return h.hexdigest()
+
+        d = dict(
+            (name, cell.cell_contents)
+            for name, cell in zip(f.co_freevars, closure))
+        h.update(self.closure_fingerprint(d))
+
+        return h.hexdigest()
 
     def _process(self, data):
         yield self.func(data)
@@ -194,6 +241,7 @@ class KeySelector(object):
     A mixin for Node-derived classes that allows the extractor to process a
     single key from the dictionary-like object it is passed
     """
+
     def __init__(self, aspect_key, needs=None, **kwargs):
         super(KeySelector, self).__init__(needs=needs, **kwargs)
         self.aspect_key = aspect_key

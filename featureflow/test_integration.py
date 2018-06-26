@@ -577,6 +577,22 @@ class BaseTest(object):
 
         self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
 
+    def test_functional_node_returning_generator_replaces_process_method(self):
+
+        def mutate(x):
+            return x.upper()
+
+        class Split(BaseModel, self.Settings):
+            stream = Feature(TextStream, store=False)
+            passthrough = Feature(
+                lambda x: (y.lower() for y in x), needs=stream, store=False)
+            uppercase = Feature(mutate, needs=passthrough, store=True)
+
+        _id = Split.process(stream='cased')
+        doc = Split(_id)
+
+        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+
     def test_functional_node_raises_when_code_changes_and_cannot_recompute(self):
 
         def mutate(x):

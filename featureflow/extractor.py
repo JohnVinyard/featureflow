@@ -218,7 +218,12 @@ class FunctionalNode(Node):
         return h.hexdigest()
 
     def _process(self, data):
-        yield self.func(data)
+        result = self.func(data)
+        if inspect.isgenerator(result):
+            for x in result:
+                yield x
+        else:
+            yield result
 
 
 class Aggregator(object):

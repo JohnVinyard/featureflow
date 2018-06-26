@@ -14,11 +14,14 @@ and then over the entire corpus of documents, but featureflow isn't limited to
 text data.  It's designed to work well with sequential/streaming data
 (e.g. audio or video) that is often processed iteratively, in small chunks.
 
-You can see [all the code in this example in one place here](https://github.com/JohnVinyard/featureflow/tree/master/examples),.
+You can see [all the code in this example in one place here](https://github.com/JohnVinyard/featureflow/tree/master/examples).
 
 We can define a graph of processing nodes like this:
 
 ```python
+import featureflow as ff
+
+
 @ff.simple_in_memory_settings
 class Document(ff.BaseModel):
     """
@@ -50,6 +53,11 @@ We can define the individual processing "nodes" referenced in the graph above
 like this:
 
 ```python
+import featureflow as ff
+from collections import Counter
+import re
+import hashlib
+
 class Tokenizer(ff.Node):
     """
     Tokenize a stream of text into individual, normalized (lowercase)
@@ -106,6 +114,8 @@ We can also define a graph that will process an entire corpus of stored document
 features:
 
 ```python
+import featureflow as ff
+
 @ff.simple_in_memory_settings
 class Corpus(ff.BaseModel):
     """
@@ -126,6 +136,9 @@ Finally, we can execute these processing graphs and access the stored features
 like this:
 
 ```python
+from __future__ import print_function
+import argparse
+
 def process_urls(urls):
     for url in urls:
         Document.process(raw=url)

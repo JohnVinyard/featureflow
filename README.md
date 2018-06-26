@@ -98,8 +98,6 @@ Finally, just
 pip install featureflow
 ```
 
-https://github.com/JohnVinyard/featureflow/blob/318065e08b52b2732d781c18f34ddf16a8b87b34/featureflow/lmdbstore.py#L35-L47
-
 
 
 

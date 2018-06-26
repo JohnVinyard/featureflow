@@ -26,7 +26,7 @@ from lmdbstore import LmdbDatabase
 
 from objectstore import ObjectStoreDatabase
 
-from persistence import PersistenceSettings
+from persistence import PersistenceSettings, simple_in_memory_settings
 
 from iteratornode import IteratorNode
 

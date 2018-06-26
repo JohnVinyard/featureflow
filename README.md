@@ -14,7 +14,7 @@ and then over the entire corpus of documents, but featureflow isn't limited to
 text data.  It's designed to work well with sequential/streaming data
 (e.g. audio or video) that is often processed iteratively, in small chunks.
 
-You can see [all the code in this example in one place here](https://github.com/JohnVinyard/featureflow/tree/master/examples).
+You can see [all the code in this example in one place here](https://github.com/JohnVinyard/featureflow/tree/master/examples/wordcount.py).
 
 We can define a graph of processing nodes like this:
 

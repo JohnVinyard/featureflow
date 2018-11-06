@@ -77,8 +77,29 @@ class PackedNumpyEncoder(NumpyEncoder):
     def __init__(self, needs=None):
         super(PackedNumpyEncoder, self).__init__(needs=needs)
 
+    def _pack_recarray(self, recarr):
+        fields = recarr.dtype.fields
+
+        packed_data = dict()
+        new_dtype = []
+
+        for name in fields.iterkeys():
+            view = recarr[name].copy().view(np.uint8) \
+                .reshape(recarr.shape + (-1,))
+            packed_data[name] = view
+            new_dtype.append((name, np.uint8, view.shape[1:]))
+
+        packed_recarray = np.recarray(recarr.shape, dtype=new_dtype)
+
+        for name, value in packed_data.iteritems():
+            packed_recarray[name] = value
+        return packed_recarray
+
     def _prepare_data(self, data):
-        return np.packbits(data.astype(np.uint8), axis=-1)
+        try:
+            return np.packbits(data.astype(np.uint8), axis=-1)
+        except ValueError:
+            return self._pack_recarray(data)
 
 
 def _np_from_buffer(b, shape, dtype):

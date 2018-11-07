@@ -36,6 +36,6 @@ setup(
         'redis'
     ],
     extras_require={
-        'numpy': ['numpy==1.15']
+        'numpy': ['numpy==1.15.3']
     }
 )

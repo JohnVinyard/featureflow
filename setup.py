@@ -5,7 +5,7 @@ import subprocess
 try:
     long_description = subprocess.check_output(
         'pandoc --to rst README.md', shell=True)
-except(IOError, ImportError):
+except(IOError, ImportError, subprocess.CalledProcessError):
     long_description = open('README.md').read()
 
 with open('featureflow/__init__.py', 'r') as fd:

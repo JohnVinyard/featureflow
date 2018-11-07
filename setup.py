@@ -1,14 +1,12 @@
 from setuptools import setup
 import re
-import warnings
+import subprocess
 
 try:
-    import pypandoc
-
-    long_description = pypandoc.convert('README.md', 'rst')
-except(IOError, ImportError, RuntimeError):
+    long_description = subprocess.check_output(
+        'pandoc --to rst README.md', shell=True)
+except(IOError, ImportError):
     long_description = open('README.md').read()
-    warnings.warn('pypandoc is not working correctly')
 
 with open('featureflow/__init__.py', 'r') as fd:
     version = re.search(

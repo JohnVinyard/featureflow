@@ -1,7 +1,21 @@
 import lmdb
-from data import Database
+from .data import Database
 from io import BytesIO
 import os
+
+
+def to_bytes(s):
+    try:
+        return s.encode()
+    except AttributeError:
+        return s
+
+
+def from_bytes(b):
+    try:
+        return b.decode()
+    except AttributeError:
+        return b
 
 
 class WriteStream(object):
@@ -26,10 +40,10 @@ class WriteStream(object):
             return
 
         with self.env.begin(db, write=True) as txn:
-            txn.put(_id, data, db=db)
+            txn.put(to_bytes(_id.encode()), data, db=db)
 
     def write(self, data):
-        self.buf.write(data)
+        self.buf.write(to_bytes(data))
 
 
 class LmdbDatabase(Database):
@@ -65,8 +79,9 @@ class LmdbDatabase(Database):
                 self.dbs[feature] = self.env.open_db(feature)
 
     def _get_db(self, key):
-        _id, feature, version = self.key_builder.decompose(key)
+        _id, feature, version = self.key_builder.decompose(from_bytes(key))
         versioned_key = self.key_builder.build(_id, version)
+        feature = to_bytes(feature)
         try:
             return versioned_key, self.dbs[feature]
         except KeyError:
@@ -75,8 +90,9 @@ class LmdbDatabase(Database):
             return versioned_key, db
 
     def _get_read_db(self, key):
-        _id, feature, version = self.key_builder.decompose(key)
+        _id, feature, version = self.key_builder.decompose(from_bytes(key))
         versioned_key = self.key_builder.build(_id, version)
+        feature = to_bytes(feature)
         try:
             return versioned_key, self.dbs[feature]
         except KeyError:
@@ -88,13 +104,13 @@ class LmdbDatabase(Database):
                 raise KeyError(key)
 
     def write_stream(self, key, content_type):
-        return WriteStream(key, self.env, self._get_db)
+        return WriteStream(key.encode(), self.env, self._get_db)
 
     def read_stream(self, key):
-        _id, db = self._get_read_db(key)
+        _id, db = self._get_read_db(to_bytes(key))
 
         with self.env.begin(buffers=True) as txn:
-            buf = txn.get(_id, db=db)
+            buf = txn.get(to_bytes(_id), db=db)
             if buf is None:
                 raise KeyError(key)
 
@@ -120,7 +136,7 @@ class LmdbDatabase(Database):
             # return the first feature database
             # KLUDGE: This makes the assumption that features are never sparse,
             # i.e., all documents/ids have the same set of features
-            return self.dbs.values()[0]
+            return list(self.dbs.values())[0]
         except IndexError:
             pass
 
@@ -128,7 +144,7 @@ class LmdbDatabase(Database):
         self._init_db_cache()
 
         try:
-            return self.dbs.values()[0]
+            return list(self.dbs.values())[0]
         except IndexError:
             return None
 
@@ -141,7 +157,7 @@ class LmdbDatabase(Database):
         with self.env.begin(db) as txn:
             cursor = txn.cursor(db)
             for _id in cursor.iternext(keys=True, values=False):
-                _id, version = self.key_builder.decompose(_id)
+                _id, version = self.key_builder.decompose(_id.decode('utf-8'))
                 if _id in seen:
                     continue
                 yield _id
@@ -153,7 +169,7 @@ class LmdbDatabase(Database):
         except KeyError:
             return False
         with self.env.begin(buffers=True) as txn:
-            buf = txn.get(_id, db=db)
+            buf = txn.get(to_bytes(_id), db=db)
         return buf is not None
 
     def __delitem__(self, key):

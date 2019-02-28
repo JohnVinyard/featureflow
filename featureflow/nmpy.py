@@ -3,10 +3,10 @@ import numpy as np
 # that the symbol "numpy" must be defined when we call eval().  This is a
 # terrible kludge; we should not be using eval() at all.
 import numpy
-from extractor import Node
-from feature import Feature
-from util import chunked
-from decoder import Decoder
+from .extractor import Node
+from .feature import Feature
+from .util import chunked
+from .decoder import Decoder
 import struct
 
 
@@ -83,7 +83,7 @@ class PackedNumpyEncoder(NumpyEncoder):
         packed_data = dict()
         new_dtype = []
 
-        for name in fields.iterkeys():
+        for name in list(fields.keys()):
             view = recarr[name].copy().view(np.uint8) \
                 .reshape(recarr.shape + (-1,))
             packed_data[name] = view
@@ -91,7 +91,7 @@ class PackedNumpyEncoder(NumpyEncoder):
 
         packed_recarray = np.recarray(recarr.shape, dtype=new_dtype)
 
-        for name, value in packed_data.iteritems():
+        for name, value in list(packed_data.items()):
             packed_recarray[name] = value
         return packed_recarray
 

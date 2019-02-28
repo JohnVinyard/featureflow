@@ -1,7 +1,7 @@
 import unittest2
-from lmdbstore import LmdbDatabase
+from .lmdbstore import LmdbDatabase
 from uuid import uuid4
-from data import StringDelimitedKeyBuilder
+from .data import StringDelimitedKeyBuilder
 import shutil
 import os
 from multiprocessing.pool import Pool
@@ -66,7 +66,7 @@ class LmdbDatabaseTests(unittest2.TestCase):
 
     def test_can_instantiate_db_many_times_without_causing_max_readers_error(
             self):
-        for i in xrange(1000):
+        for i in range(1000):
             db = EphemeralLmdb(dir=self.dir).db
 
             key = self.key_builder.build(uuid4().hex, 'feature', 'version')
@@ -82,16 +82,16 @@ class LmdbDatabaseTests(unittest2.TestCase):
 
     def test_keys_written_out_of_process_are_reflected_in_current_process(self):
         pool = Pool(2)
-        pool.map(write_key, [self.dir for _ in xrange(10)])
+        pool.map(write_key, [self.dir for _ in range(10)])
         _ids = list(self.db.iter_ids())
         self.assertEqual(10, len(_ids))
 
     def test_can_list_keys_from_multiple_processes(self):
         pool = Pool(4)
-        for i in xrange(10):
+        for i in range(10):
             write_key(self.dir)
 
-        counts = pool.map(db_count, [self.dir for _ in xrange(10)])
+        counts = pool.map(db_count, [self.dir for _ in range(10)])
 
         self.assertEqual([10] * 10, counts)
 

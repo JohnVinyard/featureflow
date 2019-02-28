@@ -1,5 +1,5 @@
 import json
-from extractor import Node, Aggregator
+from .extractor import Node, Aggregator
 import bz2
 from dill import dumps, HIGHEST_PROTOCOL
 
@@ -10,8 +10,11 @@ class IdentityEncoder(Node):
     def __init__(self, needs=None):
         super(IdentityEncoder, self).__init__(needs=needs)
 
+    def _seed(self):
+        return b''
+
     def _enqueue(self, data, pusher):
-        self._cache = data if data else ''
+        self._cache = data if data else self._seed()
 
 
 class TextEncoder(IdentityEncoder):
@@ -19,6 +22,12 @@ class TextEncoder(IdentityEncoder):
 
     def __init__(self, needs=None):
         super(TextEncoder, self).__init__(needs=needs)
+
+    def _seed(self):
+        return ''
+
+    def _process(self, data):
+        yield data.encode()
 
 
 class JSONEncoder(Node):

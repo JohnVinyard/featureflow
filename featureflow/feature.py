@@ -1,13 +1,13 @@
-from var import Var
+from .var import Var
 from collections import OrderedDict
 import inspect
-from datawriter import DataWriter, StringIODataWriter, ClobberDataWriter
-from decoder import JSONDecoder, Decoder, GreedyDecoder, DecoderNode, \
+from .datawriter import DataWriter, BytesIODataWriter, ClobberDataWriter
+from .decoder import JSONDecoder, Decoder, GreedyTextDecoder, DecoderNode, \
     BZ2Decoder, PickleDecoder
-from encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
+from .encoder import IdentityEncoder, JSONEncoder, TextEncoder, BZ2Encoder, \
     PickleEncoder
-from extractor import Graph, FunctionalNode, Node, KeySelector
-from util import dictify
+from .extractor import Graph, FunctionalNode, Node, KeySelector
+from .util import dictify
 
 
 class Feature(object):
@@ -49,7 +49,7 @@ class Feature(object):
     def _fixup_needs(self):
         self.needs = dictify(self.needs, lambda item: item.key)
 
-        for k, v in self.needs.iteritems():
+        for k, v in list(self.needs.items()):
             try:
                 # the value is an Aspect
                 self.needs[k] = v.feature
@@ -86,7 +86,7 @@ class Feature(object):
 
     @property
     def dependencies(self):
-        return self.needs.values()
+        return list(self.needs.values())
 
     @property
     def version(self):
@@ -97,7 +97,7 @@ class Feature(object):
         if isinstance(self.needs, dict):
             dependencies = dict(
                 (k, v.extractor(**v.extractor_args))
-                for k, v in self.needs.iteritems())
+                for k, v in list(self.needs.items()))
         else:
             dependencies = [f.extractor(**f.extractor_args) for f in self.needs]
 
@@ -178,7 +178,7 @@ class Feature(object):
         graph, stream = self._build_partial(_id, persistence)
 
         kwargs = dict()
-        for k, extractor in graph.roots().iteritems():
+        for k, extractor in list(graph.roots().items()):
             try:
                 kwargs[k] = extractor._reader
             except AttributeError:
@@ -216,11 +216,11 @@ class Feature(object):
     def _build_partial(self, _id, persistence):
         features = self._partial(_id, persistence=persistence)
         g = Graph()
-        for feat in features.itervalues():
+        for feat in list(features.values()):
             e = feat._build_extractor(_id, g, persistence)
             if feat.key == self.key:
                 stream = e.find_listener(
-                    lambda x: isinstance(x, StringIODataWriter))
+                    lambda x: isinstance(x, BytesIODataWriter))
                 if stream is not None:
                     stream = stream._stream
 
@@ -240,7 +240,7 @@ class Feature(object):
         if self.store and not stored:
             data_writer = None
         elif root:
-            data_writer = StringIODataWriter
+            data_writer = BytesIODataWriter
         else:
             data_writer = None
 
@@ -260,7 +260,7 @@ class Feature(object):
         features[self.key] = nf
 
         if not is_cached:
-            for k, v in self.needs.iteritems():
+            for k, v in list(self.needs.items()):
                 v._partial(_id, features=features, persistence=persistence)
                 nf.needs[k] = features[v.key]
 
@@ -269,7 +269,7 @@ class Feature(object):
     def _depends_on(self, _id, graph, persistence, **kwargs):
         needs = OrderedDict()
 
-        for k, f in self.needs.iteritems():
+        for k, f in list(self.needs.items()):
             if f.key in graph:
                 needs[k] = graph[f.key]
                 continue
@@ -288,7 +288,7 @@ class Feature(object):
         needs = self._depends_on(_id, graph, persistence, **kwargs)
 
         extractor_args = dict()
-        for k, v in self.extractor_args.iteritems():
+        for k, v in list(self.extractor_args.items()):
             if isinstance(v, Var) and v.name == k:
                 try:
                     extractor_args[k] = kwargs[k]
@@ -445,6 +445,6 @@ class TextFeature(Feature):
             needs=needs,
             store=store,
             encoder=TextEncoder,
-            decoder=GreedyDecoder(),
+            decoder=GreedyTextDecoder(),
             key=key,
             **extractor_args)

@@ -1,4 +1,4 @@
-from extractor import Node
+from .extractor import Node
 
 
 class DatabaseIterator(Node):

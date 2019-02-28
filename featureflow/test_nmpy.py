@@ -2,15 +2,15 @@ import unittest2
 
 try:
     import numpy as np
-    from nmpy import NumpyFeature, StreamingNumpyDecoder, PackedNumpyEncoder
+    from .nmpy import NumpyFeature, StreamingNumpyDecoder, PackedNumpyEncoder
 except ImportError:
     np = None
 
-from persistence import PersistenceSettings
-from data import *
-from model import BaseModel
-from lmdbstore import LmdbDatabase
-from extractor import Node
+from .persistence import PersistenceSettings
+from .data import *
+from .model import BaseModel
+from .lmdbstore import LmdbDatabase
+from .extractor import Node
 from tempfile import mkdtemp
 from shutil import rmtree
 

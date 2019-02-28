@@ -6,30 +6,30 @@ import subprocess
 import sys
 import time
 
-from var import Var
-from extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
-from iteratornode import IteratorNode
-from model import BaseModel, NoPersistenceSettingsError, ModelExistsError
-from feature import \
+from .var import Var
+from .extractor import NotEnoughData, Aggregator, Node, InvalidProcessMethod
+from .iteratornode import IteratorNode
+from .model import BaseModel, NoPersistenceSettingsError, ModelExistsError
+from .feature import \
     Feature, JSONFeature, CompressedFeature, ClobberJSONFeature, \
     ClobberPickleFeature
-from data import *
-from bytestream import ByteStream, ByteStreamFeature
+from .data import *
+from .bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
-from util import chunked
-from lmdbstore import LmdbDatabase
-from decoder import Decoder
-from persistence import PersistenceSettings
+from .util import chunked
+from .lmdbstore import LmdbDatabase
+from .decoder import Decoder
+from .persistence import PersistenceSettings
 from tempfile import mkdtemp
 from shutil import rmtree
 import traceback
 
 data_source = {
-    'mary': 'mary had a little lamb little lamb little lamb',
-    'humpty': 'humpty dumpty sat on a wall humpty dumpty had a great fall',
-    'numbers': range(10),
-    'cased': 'This is a test.',
-    'lorem': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum'
+    'mary': b'mary had a little lamb little lamb little lamb',
+    'humpty': b'humpty dumpty sat on a wall humpty dumpty had a great fall',
+    'numbers': list(range(10)),
+    'cased': b'This is a test.',
+    'lorem': b'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum'
 }
 
 
@@ -40,10 +40,12 @@ class TextStream(Node):
 
     def _process(self, data):
         try:
-            flo = StringIO(data_source[data])
+            flo = BytesIO(data_source[data])
         except KeyError as e:
             if isinstance(data, str):
-                flo = StringIO(data)
+                flo = BytesIO(data.encode())
+            elif isinstance(data, bytes):
+                flo = BytesIO(data)
             else:
                 raise e
 
@@ -208,20 +210,20 @@ class Contrarion(Node):
 class Concatenate(Aggregator, Node):
     def __init__(self, needs=None):
         super(Concatenate, self).__init__(needs=needs)
-        self._cache = defaultdict(str)
+        self._cache = defaultdict(bytes)
 
     def _enqueue(self, data, pusher):
         self._cache[id(pusher)] += data
 
     def _process(self, data):
-        yield ''.join((data[id(n)] for n in self._needs.values()))
+        yield b''.join((data[id(n)] for n in list(self._needs.values())))
 
 
 class ExplicitConcatenate(Aggregator, Node):
     def __init__(self, blarg=None, needs=None):
         super(ExplicitConcatenate, self).__init__(needs=needs)
         self.blarg = blarg
-        self._cache = defaultdict(str)
+        self._cache = defaultdict(bytes)
 
     def _enqueue(self, data, pusher):
         k = self._dependency_name(pusher)
@@ -229,9 +231,9 @@ class ExplicitConcatenate(Aggregator, Node):
 
     def _last_chunk(self):
         if self.blarg:
-            yield 'BLARG!'
+            yield b'BLARG!'
         else:
-            yield ''
+            yield b''
 
     def _process(self, data):
         lhs = data['lhs']
@@ -253,7 +255,7 @@ class WordCountAggregator(Aggregator, Node):
         self._cache = defaultdict(int)
 
     def _enqueue(self, data, pusher):
-        for k, v in data.iteritems():
+        for k, v in data.items():
             self._cache[k.lower()] += v
 
 
@@ -273,7 +275,7 @@ class SumUp(Node):
         return v
 
     def _process(self, data):
-        results = [str(sum(x)) for x in zip(*data.itervalues())]
+        results = [str(sum(x)) for x in zip(*iter(data.values()))]
         yield ''.join(results)
 
 
@@ -290,7 +292,7 @@ class EagerConcatenate(Node):
         return v
 
     def _process(self, data):
-        yield ''.join(data.itervalues())
+        yield ''.join(iter(data.values()))
 
 
 class NumberStream(Node):
@@ -299,7 +301,7 @@ class NumberStream(Node):
 
     def _process(self, data):
         l = data_source[data]
-        for i in xrange(0, len(l), 3):
+        for i in range(0, len(l), 3):
             yield l[i: i + 3]
 
 
@@ -315,16 +317,16 @@ class Add(Node):
 class Tokenizer(Node):
     def __init__(self, needs=None):
         super(Tokenizer, self).__init__(needs=needs)
-        self._cache = ''
+        self._cache = b''
 
     def _enqueue(self, data, pusher):
         self._cache += data
 
     def _finalize(self, pusher):
-        self._cache += ' '
+        self._cache += b' '
 
     def _dequeue(self):
-        last_index = self._cache.rfind(' ')
+        last_index = self._cache.rfind(b' ')
         if last_index == -1:
             raise NotEnoughData()
         current = self._cache[:last_index + 1]
@@ -332,7 +334,7 @@ class Tokenizer(Node):
         return current
 
     def _process(self, data):
-        yield filter(lambda x: x, data.split(' '))
+        yield [x for x in data.split(b' ') if x]
 
 
 class WordCount(Aggregator, Node):
@@ -459,8 +461,8 @@ class BaseTest(object):
 
         _id = Document.process(stream='cased')
         doc = Document(_id)
-        self.assertEqual('this is a test.', doc.lower.read())
-        self.assertEqual('THIS IS A TEST.', doc.upper.read())
+        self.assertEqual(b'this is a test.', doc.lower.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.upper.read())
 
     def test_can_split_on_dict_feature_unstored(self):
         class Document(BaseModel, self.Settings):
@@ -471,8 +473,8 @@ class BaseTest(object):
 
         _id = Document.process(stream='cased')
         doc = Document(_id)
-        self.assertEqual('this is a test.', doc.lower.read())
-        self.assertEqual('THIS IS A TEST.', doc.upper.read())
+        self.assertEqual(b'this is a test.', doc.lower.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.upper.read())
 
     def test_can_nest_aspect_call_inside_of_dict_dependency(self):
         class Document(BaseModel, self.Settings):
@@ -505,7 +507,7 @@ class BaseTest(object):
         _id = Document.process(stream=keyname)
         doc = Document(_id)
 
-        self.assertEqual('THIS IS A TEST.this is a test.BLARG!', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.BLARG!', doc.cat.read())
 
     def test_can_have_multiple_explicit_dependencies(self):
         class Split(BaseModel, self.Settings):
@@ -605,7 +607,7 @@ class BaseTest(object):
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.uppercase.read())
 
         def mutate(x):
             return x.lower()
@@ -655,7 +657,7 @@ class BaseTest(object):
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.uppercase.read())
 
         def mutate(x):
             return x.lower()
@@ -666,7 +668,7 @@ class BaseTest(object):
 
         doc = Split(_id)
 
-        self.assertEqual('this is a test.', doc.uppercase.read())
+        self.assertEqual(b'this is a test.', doc.uppercase.read())
 
     def test_functional_node_is_recomputed_when_free_variable_changes(self):
 
@@ -1313,13 +1315,13 @@ class BaseTest(object):
         class Timestamp(Aggregator, Node):
             def __init__(self, needs=None):
                 super(Timestamp, self).__init__(needs=needs)
-                self._cache = ''
+                self._cache = b''
 
             def _enqueue(self, data, pusher):
                 self._cache += data
 
             def _process(self, data):
-                yield str(random.random())
+                yield str(random.random()).encode()
 
         class Timestamps(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True)
@@ -1484,7 +1486,7 @@ class BaseTest(object):
 
         _id = Numbers.process(stream='numbers')
         doc = Numbers(_id)
-        self.assertEqual('2468101214161820', doc.sumup.read())
+        self.assertEqual(b'2468101214161820', doc.sumup.read())
 
     def test_feature_that_takes_a_variable(self):
 
@@ -1496,7 +1498,7 @@ class BaseTest(object):
 
         _id = Numbers.process(stream='numbers', rhs=2)
         doc = Numbers(_id)
-        self.assertEqual('234567891011', doc.stringify.read())
+        self.assertEqual(b'234567891011', doc.stringify.read())
 
     def test_raises_if_necessary_variable_is_not_provided(self):
         class Numbers(BaseModel, self.Settings):
@@ -1516,7 +1518,7 @@ class BaseTest(object):
 
         _id = Numbers.process(stream='numbers')
         doc = Numbers(_id)
-        self.assertEqual('2468101214161820', doc.sumup.read())
+        self.assertEqual(b'2468101214161820', doc.sumup.read())
 
     def test_unstored_feature_with_multiple_inputs_can_be_computed(self):
         class Doc3(BaseModel, self.Settings):
@@ -1528,7 +1530,7 @@ class BaseTest(object):
 
         _id = Doc3.process(stream='cased')
         doc = Doc3(_id)
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
     def test_can_read_computed_property_with_multiple_dependencies(self):
         class Split(BaseModel, self.Settings):
@@ -1548,7 +1550,7 @@ class BaseTest(object):
         doc.uppercase.seek(0)
         doc.lowercase.seek(0)
 
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
     def test_can_read_computed_property_when_dependencies_are_in_different_data_stores(
             self):

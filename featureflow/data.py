@@ -1,4 +1,4 @@
-from StringIO import StringIO
+from io import StringIO, BytesIO
 from uuid import uuid4
 import os
 
@@ -115,9 +115,9 @@ class Database(object):
         raise NotImplementedError()
 
 
-class IOWithLength(StringIO):
+class IOWithLength(BytesIO):
     def __init__(self, content):
-        StringIO.__init__(self, content)
+        super().__init__(content)
         self._length = len(content)
 
     def __len__(self):
@@ -130,17 +130,17 @@ class InMemoryDatabase(Database):
         self._dict = dict()
 
     def write_stream(self, key, content_type):
-        sio = StringIO()
-        self._dict[key] = sio
+        bio = BytesIO()
+        self._dict[key] = bio
 
         def hijacked_close():
-            sio.seek(0)
-            self._dict[key] = sio.read()
-            sio._old_close()
+            bio.seek(0)
+            self._dict[key] = bio.read()
+            bio._old_close()
 
-        sio._old_close = sio.close
-        sio.close = hijacked_close
-        return sio
+        bio._old_close = bio.close
+        bio.close = hijacked_close
+        return bio
 
     def read_stream(self, key):
         return IOWithLength(self._dict[key])
@@ -150,7 +150,7 @@ class InMemoryDatabase(Database):
 
     def iter_ids(self):
         seen = set()
-        for key in self._dict.iterkeys():
+        for key in list(self._dict.keys()):
             _id, _, _ = self.key_builder.decompose(key)
             if _id in seen:
                 continue
@@ -192,7 +192,7 @@ class LazyFile(object):
 
         if self._file is None:
             self._file = open(self.path, 'wb')
-        self._file.write(data)
+        self._file.write(data.encode())
 
 
 class FileSystemDatabase(Database):

@@ -1,12 +1,12 @@
 import unittest2
-from eventlog import InMemoryChannel, EventLog
-from model import BaseModel
-from persistence import PersistenceSettings
+from .eventlog import InMemoryChannel, EventLog
+from .model import BaseModel
+from .persistence import PersistenceSettings
 import tempfile
 import shutil
-from test_integration import TextStream, ToUpper, ToLower
-from feature import Feature
-from data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
+from .test_integration import TextStream, ToUpper, ToLower
+from .feature import Feature
+from .data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
 import json
 
 
@@ -37,7 +37,7 @@ class EventLogTests(unittest2.TestCase):
         shutil.rmtree(self._dir)
 
     def _fetch(self, subscription):
-        _, raw = subscription.next()
+        _, raw = next(subscription)
         return json.loads(raw)
 
     def test_event_log_count_zero_documents(self):

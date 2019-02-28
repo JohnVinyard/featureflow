@@ -1,6 +1,6 @@
 import unittest2
-from datawriter import StringIODataWriter
-from encoder import IdentityEncoder
+from .datawriter import StringIODataWriter
+from .encoder import IdentityEncoder
 
 
 class StringIODataWriterTests(unittest2.TestCase):

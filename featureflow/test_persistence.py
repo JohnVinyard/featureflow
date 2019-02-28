@@ -1,8 +1,8 @@
 import unittest2
-from persistence import simple_in_memory_settings
-from bytestream import ByteStream, ByteStreamFeature
-from feature import Feature
-from model import BaseModel
+from .persistence import simple_in_memory_settings
+from .bytestream import ByteStream, ByteStreamFeature
+from .feature import Feature, TextFeature
+from .model import BaseModel
 from io import BytesIO
 
 
@@ -15,15 +15,15 @@ class SimpleInMemorySettingsDecoratorTests(unittest2.TestCase):
                 chunksize=128,
                 store=True)
 
-            uppercase = Feature(
-                lambda x: x.upper(),
+            uppercase = TextFeature(
+                lambda x: x.decode().upper(),
                 needs=stream,
                 store=False)
 
-        input = BytesIO('Here is some text')
+        input = BytesIO(b'Here is some text')
         _id = Document.process(stream=input)
         doc = Document(_id)
-        self.assertEqual('HERE IS SOME TEXT', doc.uppercase.read())
+        self.assertEqual('HERE IS SOME TEXT', doc.uppercase)
 
     def test_decorated_class_has_correct_module_and_name(self):
 

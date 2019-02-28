@@ -1,8 +1,8 @@
-from itertools import izip_longest
-import contextlib
+from itertools import zip_longest
+from contextlib import ExitStack
 from collections import deque, defaultdict
 import inspect
-from util import dictify
+from .util import dictify
 from hashlib import md5
 
 
@@ -28,7 +28,7 @@ class Node(object):
 
         self._needs = dictify(needs)
         self._dependecy_names = dict(
-            (id(v), k) for k, v in self._needs.iteritems())
+            (id(v), k) for k, v in list(self._needs.items()))
 
         for n in self.dependencies:
             n.add_listener(self)
@@ -39,7 +39,7 @@ class Node(object):
     @property
     def dependencies(self):
         if isinstance(self._needs, dict):
-            return self._needs.values()
+            return list(self._needs.values())
         return self._needs
 
     def _dependency_name(self, pusher):
@@ -194,13 +194,13 @@ class FunctionalNode(Node):
         specified
         """
         try:
-            f = self.func.__call__.func_code
+            f = self.func.__call__.__code__
         except AttributeError:
-            f = self.func.func_code
+            f = self.func.__code__
 
         h = md5()
         h.update(f.co_code)
-        h.update(str(f.co_names))
+        h.update(str(f.co_names).encode())
 
         try:
             closure = self.func.__closure__
@@ -213,7 +213,7 @@ class FunctionalNode(Node):
         d = dict(
             (name, cell.cell_contents)
             for name, cell in zip(f.co_freevars, closure))
-        h.update(self.closure_fingerprint(d))
+        h.update(self.closure_fingerprint(d).encode())
 
         return h.hexdigest()
 
@@ -278,14 +278,14 @@ class Graph(dict):
         super(Graph, self).__init__(**kwargs)
 
     def roots(self):
-        return dict((k, v) for k, v in self.iteritems() if v.is_root)
+        return dict((k, v) for k, v in list(self.items()) if v.is_root)
 
     def leaves(self):
-        return dict((k, v) for k, v in self.iteritems() if v.is_leaf)
+        return dict((k, v) for k, v in list(self.items()) if v.is_leaf)
 
     def subscriptions(self):
         subscriptions = defaultdict(list)
-        for node in self.itervalues():
+        for node in list(self.values()):
             for n in node.dependencies:
                 subscriptions[id(n)].append(node)
         return subscriptions
@@ -294,7 +294,7 @@ class Graph(dict):
         # starting from the leaves, remove any nodes that are not stored, and 
         # have no stored consuming nodes
         mapping = dict((self[f.key], f) for f in features)
-        nodes = deque(self.leaves().values())
+        nodes = deque(list(self.leaves().values()))
         while nodes:
             extractor = nodes.pop()
             nodes.extendleft(extractor.dependencies)
@@ -322,7 +322,7 @@ class Graph(dict):
                 (
                     'the keys {kw} were provided to the process() method, but the' \
                     + ' keys for the root extractors were {r}') \
-                    .format(kw=kwargs.keys(), r=roots.keys()))
+                    .format(kw=list(kwargs.keys()), r=list(roots.keys())))
 
         graph_args = dict((k, kwargs[k]) for k in intersection)
 
@@ -330,10 +330,11 @@ class Graph(dict):
         queue = deque()
 
         # get a generator for each root node.
-        with contextlib.nested(*self.values()) as _:
+        with ExitStack() as stack:
+            [stack.enter_context(v) for v in self.values()]
             generators = [roots[k].process(v, queue=queue)
-                          for k, v in graph_args.iteritems()]
-            for _ in izip_longest(*generators):
+                          for k, v in list(graph_args.items())]
+            for _ in zip_longest(*generators):
                 while queue:
                     key, fname, kwargs = queue.pop()
                     for subscriber in subscriptions[key]:

@@ -1,8 +1,9 @@
 import json
-from util import chunked
-from extractor import Node
+from .util import chunked
+from .extractor import Node
 import bz2
 from dill import loads
+from io import StringIO
 
 
 class Decoder(object):
@@ -21,6 +22,18 @@ class Decoder(object):
             yield chunk
 
 
+class TextDecoder(Decoder):
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, flo):
+        return StringIO(flo.read().decode())
+
+    def __iter__(self):
+        for chunk in super().__iter__(self.flo):
+            yield chunk.decode()
+
+
 class GreedyDecoder(Decoder):
     """
     A decoder that reads the entire file contents into memory
@@ -36,7 +49,18 @@ class GreedyDecoder(Decoder):
         yield self(flo)
 
 
-class JSONDecoder(GreedyDecoder):
+class GreedyTextDecoder(TextDecoder):
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, flo):
+        return flo.read().decode()
+
+    def __iter__(self, flo):
+        yield self(flo)
+
+
+class JSONDecoder(GreedyTextDecoder):
     """
     A decoder that interprets the data as JSON
     """

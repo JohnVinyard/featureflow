@@ -1,6 +1,6 @@
-from extractor import Graph
-from feature import Feature
-from persistence import PersistenceSettings
+from .extractor import Graph
+from .feature import Feature
+from .persistence import PersistenceSettings
 from random import choice
 
 
@@ -11,10 +11,10 @@ class MetaModel(type):
         super(MetaModel, cls).__init__(name, bases, attrs)
 
     def iter_features(self):
-        return self.features.itervalues()
+        return iter(list(self.features.values()))
 
     def _add_features(cls, features):
-        for k, v in cls.__dict__.iteritems():
+        for k, v in list(cls.__dict__.items()):
             if not isinstance(v, Feature):
                 continue
             v.key = k
@@ -26,7 +26,7 @@ class MetaModel(type):
             except AttributeError:
                 pass
 
-        for f in cls.features.values():
+        for f in list(cls.features.values()):
             f._fixup_needs()
 
     @staticmethod
@@ -57,9 +57,7 @@ class ModelExistsError(Exception):
     pass
 
 
-class BaseModel(object):
-    __metaclass__ = MetaModel
-
+class BaseModel(object, metaclass=MetaModel):
     def __init__(self, _id=None):
         super(BaseModel, self).__init__()
         if _id:
@@ -80,7 +78,7 @@ class BaseModel(object):
     @classmethod
     def _build_extractor(cls, _id, **kwargs):
         g = Graph()
-        for feature in cls.features.itervalues():
+        for feature in list(cls.features.values()):
             feature._build_extractor(_id, g, cls, **kwargs)
         return g
 
@@ -101,7 +99,7 @@ class BaseModel(object):
                 raise ValueError(
                     '_id must be provided explicitly, or it must be static')
 
-        feature = feature or filter(lambda f: f.store, cls.iter_features())[0]
+        feature = feature or [f for f in cls.iter_features() if f.store][0]
         feature_key = feature.feature_key(_id, cls)
         return feature_key in cls.database
 
@@ -126,7 +124,7 @@ class BaseModel(object):
             pass
 
         graph = cls._build_extractor(_id, **kwargs)
-        graph.remove_dead_nodes(cls.features.itervalues())
+        graph.remove_dead_nodes(iter(list(cls.features.values())))
 
         graph.process(**kwargs)
         return _id

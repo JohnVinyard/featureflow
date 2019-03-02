@@ -1,3 +1,6 @@
+import requests
+import http.client
+from .util import wait_for_http_server
 import unittest2
 from collections import defaultdict
 import random
@@ -990,7 +993,8 @@ class BaseTest(object):
                 [sys.executable, '-m', 'http.server', '9765'],
                 stdout=devnull,
                 stderr=devnull)
-            time.sleep(0.25)
+
+            wait_for_http_server('localhost', '9765')
             url = 'http://localhost:9765/{path}'.format(path=uuid4().hex)
             self.assertRaises(
                 HTTPError,

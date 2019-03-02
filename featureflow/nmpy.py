@@ -39,7 +39,7 @@ class NumpyMetaData(object):
         return self.__repr__()
 
     def pack(self):
-        s = str(self)
+        s = str(self).encode()
         l = len(s)
         return struct.pack('B{n}s'.format(n=l), l, s)
 
@@ -103,8 +103,7 @@ class PackedNumpyEncoder(NumpyEncoder):
 
 
 def _np_from_buffer(b, shape, dtype):
-    f = np.frombuffer if len(b) else np.fromstring
-    return f(b, dtype=dtype).reshape(tuple(int(x) for x in shape))
+    return np.frombuffer(b, dtype=dtype).reshape(tuple(int(x) for x in shape))
 
 
 class BaseNumpyDecoder(Decoder):
@@ -159,7 +158,7 @@ class StreamingNumpyDecoder(Decoder):
 
         if count == 0:
             yield _np_from_buffer(
-                    buffer(''),
+                    memoryview(b''),
                     (0,) + metadata.shape,
                     metadata.dtype)
 

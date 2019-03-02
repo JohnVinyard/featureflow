@@ -4,12 +4,12 @@ import sys
 import tempfile
 import subprocess
 import requests
-import time
 from io import BytesIO
 from collections import namedtuple
 import os
 from uuid import uuid4
 import zipfile
+from .util import wait_for_http_server
 
 
 class BytestreamTests(unittest2.TestCase):
@@ -22,10 +22,10 @@ class BytestreamTests(unittest2.TestCase):
         self.expected = b''.join(uuid4().hex.encode() for _ in range(100))
         devnull = open(os.devnull, 'w')
         self.process = subprocess.Popen(
-                [sys.executable, server, self.port, self.expected],
-                stdout=devnull,
-                stderr=devnull)
-        time.sleep(0.1)
+            [sys.executable, server, self.port, self.expected],
+            stdout=devnull,
+            stderr=devnull)
+        wait_for_http_server('localhost', '9876')
 
     def tearDown(self):
         self.process.kill()
@@ -38,11 +38,10 @@ class BytestreamTests(unittest2.TestCase):
 
     def get_request(self):
         return requests.Request(
-                method='GET',
-                url=self.local_url())
+            method='GET',
+            url=self.local_url())
 
     def test_can_accept_chunksize_implementing_int(self):
-
         class SemanticChunksize(object):
             THING_SIZE_BYTES = 64
 
@@ -122,11 +121,11 @@ class BytestreamTests(unittest2.TestCase):
 class BytesWithTotalLengthTests(unittest2.TestCase):
     def test_left_add(self):
         self.assertEqual(
-                b'fakeblah', BytesWithTotalLength(b'fake', 100) + b'blah')
+            b'fakeblah', BytesWithTotalLength(b'fake', 100) + b'blah')
 
     def test_right_add(self):
         self.assertEqual(
-                b'blahfake', b'blah' + BytesWithTotalLength(b'fake', 100))
+            b'blahfake', b'blah' + BytesWithTotalLength(b'fake', 100))
 
     def test_left_increment(self):
         x = BytesWithTotalLength(b'fake', 100)

@@ -12,7 +12,7 @@ from .iteratornode import IteratorNode
 from .model import BaseModel, NoPersistenceSettingsError, ModelExistsError
 from .feature import \
     Feature, JSONFeature, CompressedFeature, ClobberJSONFeature, \
-    ClobberPickleFeature
+    ClobberPickleFeature, TextFeature
 from .data import *
 from .bytestream import ByteStream, ByteStreamFeature
 from io import BytesIO
@@ -108,13 +108,13 @@ class Dam(Aggregator, Node):
     def __init__(self, chunksize=3, needs=None):
         super(Dam, self).__init__(needs=needs)
         self._chunksize = chunksize
-        self._cache = ''
+        self._cache = b''
 
     def _enqueue(self, data, pusher):
         self._cache += data
 
     def _process(self, data):
-        flo = StringIO(data)
+        flo = BytesIO(data)
         for chunk in chunked(flo, chunksize=self._chunksize):
             yield chunk
 
@@ -197,7 +197,7 @@ class Contrarion(Node):
         self._op = None
 
     def _first_chunk(self, data):
-        if data[0].isupper():
+        if data[:1].isupper():
             self._op = lambda x: x.lower()
         else:
             self._op = lambda x: x.upper()
@@ -292,7 +292,7 @@ class EagerConcatenate(Node):
         return v
 
     def _process(self, data):
-        yield ''.join(iter(data.values()))
+        yield b''.join(iter(data.values()))
 
 
 class NumberStream(Node):
@@ -344,7 +344,7 @@ class WordCount(Aggregator, Node):
 
     def _enqueue(self, data, pusher):
         for word in data:
-            self._cache[word.lower()] += 1
+            self._cache[word.lower().decode()] += 1
 
 
 class IncrementalWordCount(Node):
@@ -359,7 +359,7 @@ class IncrementalWordCount(Node):
             raise Exception('Raising for chunk {c}'.format(c=self._chunk))
 
         for word in data:
-            self.count[word.lower()] += 1
+            self.count[word.lower().decode()] += 1
         yield self.count
         self._chunk += 1
 
@@ -490,7 +490,7 @@ class BaseTest(object):
         _id = Document.process(stream=keyname)
         doc = Document(_id)
 
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
     def test_feature_with_aspect_dependencies_can_also_have_arguments(self):
         class Document(BaseModel, self.Settings):
@@ -523,7 +523,7 @@ class BaseTest(object):
         _id = Split.process(stream=keyname)
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
         class Split2(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
@@ -537,7 +537,7 @@ class BaseTest(object):
         _id = Split2.process(stream=keyname)
         doc = Split2(_id)
 
-        self.assertEqual('this is a test.THIS IS A TEST.', doc.cat.read())
+        self.assertEqual(b'this is a test.THIS IS A TEST.', doc.cat.read())
 
     def test_can_have_multiple_explicit_dependencies_stored_feature(self):
         class Split(BaseModel, self.Settings):
@@ -553,7 +553,7 @@ class BaseTest(object):
         _id = Split.process(stream=keyname)
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
         class Split2(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
@@ -567,7 +567,7 @@ class BaseTest(object):
         _id = Split2.process(stream=keyname)
         doc = Split2(_id)
 
-        self.assertEqual('this is a test.THIS IS A TEST.', doc.cat.read())
+        self.assertEqual(b'this is a test.THIS IS A TEST.', doc.cat.read())
 
     def test_can_compute_feature_directly_with_lambda(self):
         class Split(BaseModel, self.Settings):
@@ -577,7 +577,7 @@ class BaseTest(object):
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.uppercase.read())
 
     def test_functional_node_returning_generator_replaces_process_method(self):
 
@@ -587,13 +587,13 @@ class BaseTest(object):
         class Split(BaseModel, self.Settings):
             stream = Feature(TextStream, store=False)
             passthrough = Feature(
-                lambda x: (y.lower() for y in x), needs=stream, store=False)
-            uppercase = Feature(mutate, needs=passthrough, store=True)
+                lambda x: (y.lower() for y in x.decode()), needs=stream, store=False)
+            uppercase = TextFeature(mutate, needs=passthrough, store=True)
 
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+        self.assertEqual('THIS IS A TEST.', doc.uppercase)
 
     def test_functional_node_raises_when_code_changes_and_cannot_recompute(self):
 
@@ -676,7 +676,7 @@ class BaseTest(object):
         b = 20
 
         def mutate(x):
-            return x.upper() + str(a) + str(b)
+            return x.upper() + str(a).encode() + str(b).encode()
 
         class Split(BaseModel, self.Settings):
             stream = Feature(TextStream, store=True, chunksize=100)
@@ -689,13 +689,13 @@ class BaseTest(object):
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.1020', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.1020', doc.uppercase.read())
 
         a = 20
 
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.2020', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.2020', doc.uppercase.read())
 
     def test_can_compute_feature_directly_with_callable(self):
         class FancyUpperCase(object):
@@ -709,7 +709,7 @@ class BaseTest(object):
         _id = Split.process(stream='cased')
         doc = Split(_id)
 
-        self.assertEqual('THIS IS A TEST.', doc.uppercase.read())
+        self.assertEqual(b'THIS IS A TEST.', doc.uppercase.read())
 
     def test_can_check_if_document_exists_using_static_id(self):
         settings = self.Settings.clone(
@@ -939,7 +939,7 @@ class BaseTest(object):
         self.assertEqual(3, len(list(self.Settings.database)))
 
     def test_can_use_iterator_node(self):
-        iterable = chunked(StringIO(data_source['mary']), chunksize=3)
+        iterable = chunked(BytesIO(data_source['mary']), chunksize=3)
 
         class D(BaseModel, self.Settings):
             stream = Feature(IteratorNode, store=True)
@@ -987,7 +987,7 @@ class BaseTest(object):
         try:
             devnull = open(os.devnull, 'w')
             p = subprocess.Popen(
-                [sys.executable, '-m', 'SimpleHTTPServer', '9765'],
+                [sys.executable, '-m', 'http.server', '9765'],
                 stdout=devnull,
                 stderr=devnull)
             time.sleep(0.25)
@@ -1065,7 +1065,7 @@ class BaseTest(object):
         text = data_source['mary']
         _id = Doc.process(raw=HasUri(BytesIO(text)))
         doc = Doc(_id)
-        self.assertEqual(text, ''.join(doc.raw))
+        self.assertEqual(text, b''.join(doc.raw))
 
     def test_can_use_alternate_decoder_for_stored_feature(self):
         class Doc(Document2, self.Settings):
@@ -1074,8 +1074,8 @@ class BaseTest(object):
         _id = Doc.process(stream='humpty')
         count_as_text = Doc.count(
             _id=_id, decoder=Decoder(), persistence=self.Settings).read()
-        self.assertTrue(isinstance(count_as_text, str))
-        self.assertTrue('{' in count_as_text)
+        self.assertTrue(isinstance(count_as_text, bytes))
+        self.assertTrue(b'{' in count_as_text)
 
     def test_can_user_alternate_decoder_for_unstored_feature(self):
         class D(BaseModel, self.Settings):
@@ -1086,8 +1086,8 @@ class BaseTest(object):
         _id = D.process(stream='humpty')
         count_as_text = D.count(
             _id=_id, decoder=Decoder(), persistence=self.Settings).read()
-        self.assertTrue(isinstance(count_as_text, str))
-        self.assertTrue('{' in count_as_text)
+        self.assertTrue(isinstance(count_as_text, bytes))
+        self.assertTrue(b'{' in count_as_text)
 
     def test_initializes_on_first_chunk(self):
         class D(BaseModel, self.Settings):
@@ -1109,7 +1109,7 @@ class BaseTest(object):
                 self.uri = bio
 
         bio = BytesIO()
-        bio.write('mary had a little lamb little lamb little lamb')
+        bio.write(b'mary had a little lamb little lamb little lamb')
         huri = HasUri(bio)
 
         _id = ByteStreamDocument.process(stream=huri)
@@ -1123,7 +1123,7 @@ class BaseTest(object):
 
         _id = Doc.process(stream='cased')
         doc = Doc(_id)
-        self.assertEqual('THIS IS A TEST.final', doc.final.read())
+        self.assertEqual(b'THIS IS A TEST.final', doc.final.read())
 
     def test_unstored_feature_with_no_stored_dependents_is_not_computed_during_process(
             self):
@@ -1398,12 +1398,12 @@ class BaseTest(object):
         doc = Doc(_id)
         data = doc.cat.read()
         # KLUDGE: Note that order is unknown, since we're using a dict
-        self.assertTrue('mar' in data[:6])
-        self.assertTrue('hum' in data[:6])
+        self.assertTrue(b'mar' in data[:6])
+        self.assertTrue(b'hum' in data[:6])
         self.assertEqual( \
             len(data_source['mary']) + len(data_source['humpty']),
             len(data))
-        self.assertTrue(data.endswith('fall'))
+        self.assertTrue(data.endswith(b'fall'))
 
     def test_smaller_chunks_downstream(self):
         class Doc(Doc4, self.Settings):
@@ -1581,7 +1581,7 @@ class BaseTest(object):
         self.assertEqual(data_source[keyname].upper(), doc.uppercase.read())
         self.assertEqual(data_source[keyname].lower(), doc.lowercase.read())
 
-        self.assertEqual('THIS IS A TEST.this is a test.', doc.cat.read())
+        self.assertEqual(b'THIS IS A TEST.this is a test.', doc.cat.read())
 
     def test_can_inherit(self):
         class A(BaseModel, self.Settings):
@@ -1754,7 +1754,7 @@ class BaseTest(object):
         compressed = stream.read()
         self.assertTrue(len(compressed) < len(data_source['lorem']))
         doc = A(_id)
-        self.assertEqual(data_source['lorem'].lower(), ''.join(doc.lowercase))
+        self.assertEqual(data_source['lorem'].lower(), b''.join(doc.lowercase))
 
 
 class InMemoryTest(BaseTest, unittest2.TestCase):

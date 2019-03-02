@@ -168,6 +168,7 @@ class LazyFile(object):
     """
     A file wrapper that won't create a file until some bytes have been written
     """
+
     def __init__(self, path):
         super(LazyFile, self).__init__()
         self.path = path
@@ -192,7 +193,10 @@ class LazyFile(object):
 
         if self._file is None:
             self._file = open(self.path, 'wb')
-        self._file.write(data.encode())
+        try:
+            self._file.write(data.encode())
+        except AttributeError:
+            self._file.write(data)
 
 
 class FileSystemDatabase(Database):

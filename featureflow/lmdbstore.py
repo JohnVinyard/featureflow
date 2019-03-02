@@ -123,7 +123,7 @@ class LmdbDatabase(Database):
         l = None
 
         with self.env.begin(buffers=True) as txn:
-            buf = txn.get(_id, db=db)
+            buf = txn.get(_id.encode(), db=db)
             if buf is None:
                 raise KeyError(key)
             l = len(buf)

@@ -56,9 +56,10 @@ class BZ2Encoder(Node):
     def __init__(self, needs=None):
         super(BZ2Encoder, self).__init__(needs=needs)
         self._compressor = None
+        self._cache = b''
 
     def _finalize(self, pusher):
-        self._cache = ''
+        self._cache = b''
 
     def _first_chunk(self, data):
         self._compressor = bz2.BZ2Compressor()

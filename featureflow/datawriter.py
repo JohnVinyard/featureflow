@@ -106,7 +106,10 @@ class ClobberDataWriter(DataWriter):
 
     def _process(self, data):
         self._stream = self.database.write_stream(self.key, self.content_type)
-        x = self._stream.write(data)
+        try:
+            x = self._stream.write(data)
+        except TypeError:
+            x = self._stream.write(data.encode())
         self._stream.close()
         yield x
 
@@ -143,7 +146,10 @@ class BytesIODataWriter(BaseDataWriter):
 
     def _process(self, data):
         if len(data) < self.buffer_size_limit:
-            yield self._stream.write(data)
+            try:
+                yield self._stream.write(data)
+            except TypeError:
+                yield self._stream.write(data.encode())
         else:
             chunksize = self.buffer_size_limit // 2
             for i in range(0, len(data), chunksize):

@@ -1,9 +1,9 @@
-from extractor import Node
-from decoder import Decoder
-from feature import Feature
-from util import chunked
+from .extractor import Node
+from .decoder import Decoder
+from .feature import Feature
+from .util import chunked
 import requests
-from urlparse import urlparse
+from urllib.parse import urlparse
 import os
 import struct
 import zipfile
@@ -18,7 +18,7 @@ class ByteStream(Node):
         if not content_length:
             raise ValueError('content_length should be greater than zero')
         for chunk in chunked(stream, chunksize=self._chunksize):
-            yield StringWithTotalLength(chunk, content_length)
+            yield BytesWithTotalLength(chunk, content_length)
 
     def _from_http_response(self, resp):
         resp.raise_for_status()
@@ -97,21 +97,21 @@ class ZipWrapper(object):
         return self.zipinfo.filename
 
 
-class StringWithTotalLength(str):
+class BytesWithTotalLength(bytes):
     def __new__(cls, s, total_length):
-        o = str.__new__(cls, s)
+        o = bytes.__new__(cls, s)
         o.total_length = int(total_length)
         return o
 
     def __radd__(self, other):
-        return StringWithTotalLength(other + str(self), self.total_length)
+        return BytesWithTotalLength(other + bytes(self), self.total_length)
 
 
-class StringWithTotalLengthEncoder(Node):
+class BytesWithTotalLengthEncoder(Node):
     content_type = 'application/octet-stream'
 
     def __init__(self, needs=None):
-        super(StringWithTotalLengthEncoder, self).__init__(needs=needs)
+        super(BytesWithTotalLengthEncoder, self).__init__(needs=needs)
         self._metadata_written = False
 
     def _process(self, data):
@@ -121,9 +121,9 @@ class StringWithTotalLengthEncoder(Node):
         yield data
 
 
-class StringWithTotalLengthDecoder(Decoder):
+class BytesWithTotalLengthDecoder(Decoder):
     def __init__(self, chunksize=4096):
-        super(StringWithTotalLengthDecoder, self).__init__()
+        super(BytesWithTotalLengthDecoder, self).__init__()
         self._chunksize = chunksize
         self._total_length = None
 
@@ -133,7 +133,7 @@ class StringWithTotalLengthDecoder(Decoder):
     def __iter__(self, flo):
         self._total_length = struct.unpack('I', flo.read(4))[0]
         for chunk in chunked(flo, self._chunksize):
-            yield StringWithTotalLength(chunk, self._total_length)
+            yield BytesWithTotalLength(chunk, self._total_length)
 
 
 class ByteStreamFeature(Feature):
@@ -148,8 +148,8 @@ class ByteStreamFeature(Feature):
             extractor,
             needs=needs,
             store=store,
-            encoder=StringWithTotalLengthEncoder,
-            decoder=StringWithTotalLengthDecoder(
+            encoder=BytesWithTotalLengthEncoder,
+            decoder=BytesWithTotalLengthDecoder(
                 chunksize=extractor_args['chunksize']),
             key=key,
             **extractor_args)

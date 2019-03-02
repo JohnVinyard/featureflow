@@ -4,9 +4,10 @@ import subprocess
 
 try:
     long_description = subprocess.check_output(
-        'pandoc --to rst README.md', shell=True)
-except(IOError, ImportError, subprocess.CalledProcessError):
+        'pandoc --to rst README.md', shell=True).decode('utf-8')
+except(IOError, ImportError, subprocess.CalledProcessError) as e:
     long_description = open('README.md').read()
+
 
 with open('featureflow/__init__.py', 'r') as fd:
     version = re.search(
@@ -37,5 +38,8 @@ setup(
     ],
     extras_require={
         'numpy': ['numpy==1.15.3']
-    }
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+    ],
 )

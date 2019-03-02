@@ -1,6 +1,6 @@
 import unittest2
 from uuid import uuid4
-from data import \
+from .data import \
     InMemoryDatabase, UserSpecifiedIdProvider, FileSystemDatabase, \
     StringDelimitedKeyBuilder
 import shutil
@@ -19,20 +19,20 @@ class InMemoryDatabaseTest(unittest2.TestCase):
         return self.db.read_stream(k)
 
     def test_can_write_data(self):
-        self.set('key', 'test data')
+        self.set('key', b'test data')
 
     def test_can_read_data(self):
-        self.set('key', 'test data')
+        self.set('key', b'test data')
         rs = self.get('key')
-        self.assertEqual('test data', rs.read())
+        self.assertEqual(b'test data', rs.read())
 
     def test_can_overwrite_key(self):
-        self.set('key', 'test data')
+        self.set('key', b'test data')
         rs = self.get('key')
-        self.assertEqual('test data', rs.read())
-        self.set('key', 'test data2')
+        self.assertEqual(b'test data', rs.read())
+        self.set('key', b'test data2')
         rs = self.get('key')
-        self.assertEqual('test data2', rs.read())
+        self.assertEqual(b'test data2', rs.read())
 
 
 class UserSpecifiedIdProviderTest(unittest2.TestCase):
@@ -63,7 +63,7 @@ class FileSystemDatabaseTests(unittest2.TestCase):
             s.write('text')
 
         with db.read_stream('key') as s:
-            self.assertEqual('text', s.read())
+            self.assertEqual(b'text', s.read())
 
     def test_does_not_create_path_when_not_asked(self):
         db = self._make_db(createdirs=False)

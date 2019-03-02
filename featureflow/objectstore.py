@@ -1,9 +1,9 @@
-from data import Database
+from .data import Database
 import requests
 import json
 from io import BytesIO
-import httplib
-import urllib
+import http.client
+import urllib.request, urllib.parse, urllib.error
 
 
 class WriteStream(object):
@@ -36,7 +36,7 @@ class WriteStream(object):
 
         self.buf.seek(0)
         resp = self._put()
-        if resp.status_code == httplib.UNAUTHORIZED:
+        if resp.status_code == http.client.UNAUTHORIZED:
             self.token = self.refresh()
             self._put()
 
@@ -89,13 +89,9 @@ class ObjectStoreDatabase(Database):
 
         for service in data['access']['serviceCatalog']:
             if service['name'] == 'cloudFilesCDN':
-                self.cdn_endpoint = filter(
-                        lambda x: x['region'] == self.region,
-                        service['endpoints'])[0]['publicURL']
+                self.cdn_endpoint = [x for x in service['endpoints'] if x['region'] == self.region][0]['publicURL']
             if service['name'] == 'cloudFiles':
-                self.endpoint = filter(
-                        lambda x: x['region'] == self.region,
-                        service['endpoints'])[0]['publicURL']
+                self.endpoint = [x for x in service['endpoints'] if x['region'] == self.region][0]['publicURL']
             if self.endpoint and self.cdn_endpoint:
                 break
 
@@ -121,14 +117,14 @@ class ObjectStoreDatabase(Database):
         self.cdn_uri = resp2.headers['x-cdn-uri']
 
     def _uri(self, key):
-        key = urllib.quote(key, safe='')
+        key = urllib.parse.quote(key, safe='')
         return '{endpoint}/{container_name}/{key}'.format(
                 endpoint=self.endpoint,
                 container_name=self.container_name,
                 key=key)
 
     def _cdn_uri(self, key):
-        key = urllib.quote(key, safe='')
+        key = urllib.parse.quote(key, safe='')
         return '{cdn_uri}/{key}'.format(
                 cdn_uri=self.cdn_uri,
                 key=key)
@@ -141,7 +137,7 @@ class ObjectStoreDatabase(Database):
         uri = self._cdn_uri(key)
         resp = requests.get(uri, stream=True)
 
-        if resp.status_code == httplib.NOT_FOUND:
+        if resp.status_code == http.client.NOT_FOUND:
             raise KeyError(key)
 
         return BytesIO(resp.raw.read())
@@ -149,7 +145,7 @@ class ObjectStoreDatabase(Database):
     def size(self, key):
         uri = self._cdn_uri(key)
         resp = requests.head(uri)
-        if resp.status_code != httplib.OK:
+        if resp.status_code != http.client.OK:
             raise KeyError(key)
         return int(resp.headers['Content-Length'])
 
@@ -166,20 +162,20 @@ class ObjectStoreDatabase(Database):
         for whole_key in self._all_keys():
             _id, key, version = self.key_builder.decompose(whole_key)
             if _id not in seen:
-                yield urllib.unquote(_id)
+                yield urllib.parse.unquote(_id)
                 seen.add(_id)
 
     def __contains__(self, key):
         uri = self._uri(key)
         resp = requests.head(uri, headers={'X-Auth-Token': self.token})
-        return resp.status_code == httplib.OK
+        return resp.status_code == http.client.OK
 
     def __delitem__(self, key):
         uri = self._uri(key)
         resp = requests.delete(
                 uri,
                 headers={'X-Auth-Token': self.token})
-        if resp.status_code != httplib.NO_CONTENT:
+        if resp.status_code != http.client.NO_CONTENT:
             raise KeyError(key)
 
     def __del__(self):

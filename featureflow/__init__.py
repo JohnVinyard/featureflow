@@ -1,41 +1,41 @@
 __version__ = '2.12.1'
 
-from model import BaseModel, ModelExistsError
+from .model import BaseModel, ModelExistsError
 
-from feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
+from .feature import Feature, JSONFeature, TextFeature, CompressedFeature, \
     PickleFeature, ClobberPickleFeature, ClobberJSONFeature
 
-from extractor import Node, Graph, Aggregator, NotEnoughData
+from .extractor import Node, Graph, Aggregator, NotEnoughData
 
-from bytestream import ByteStream, ByteStreamFeature, ZipWrapper, iter_zip
+from .bytestream import ByteStream, ByteStreamFeature, ZipWrapper, iter_zip
 
-from data import \
+from .data import \
     IdProvider, UuidProvider, UserSpecifiedIdProvider, StaticIdProvider, \
     KeyBuilder, StringDelimitedKeyBuilder, Database, FileSystemDatabase, \
     InMemoryDatabase
 
-from datawriter import DataWriter
+from .datawriter import DataWriter
 
-from database_iterator import DatabaseIterator
+from .database_iterator import DatabaseIterator
 
-from encoder import IdentityEncoder, PickleEncoder
+from .encoder import IdentityEncoder, PickleEncoder
 
-from decoder import Decoder, PickleDecoder
+from .decoder import Decoder, PickleDecoder
 
-from lmdbstore import LmdbDatabase
+from .lmdbstore import LmdbDatabase
 
-from objectstore import ObjectStoreDatabase
+from .objectstore import ObjectStoreDatabase
 
-from persistence import PersistenceSettings, simple_in_memory_settings
+from .persistence import PersistenceSettings, simple_in_memory_settings
 
-from iteratornode import IteratorNode
+from .iteratornode import IteratorNode
 
-from eventlog import EventLog, RedisChannel, InMemoryChannel
+from .eventlog import EventLog, RedisChannel, InMemoryChannel
 
-from var import Var
+from .var import Var
 
 try:
-    from nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \
+    from .nmpy import NumpyEncoder, PackedNumpyEncoder, StreamingNumpyDecoder, \
         BaseNumpyDecoder, NumpyMetaData, NumpyFeature
 except ImportError:
     pass

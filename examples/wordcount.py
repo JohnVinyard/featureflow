@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import featureflow as ff
 import argparse
 from collections import Counter
@@ -28,7 +28,7 @@ class Tokenizer(ff.Node):
         return matches
 
     def _process(self, data):
-        yield map(lambda x: x.groupdict()['word'].lower(), data)
+        yield [x.groupdict()['word'].lower() for x in data]
 
 
 class WordCount(ff.Aggregator, ff.Node):

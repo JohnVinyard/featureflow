@@ -1,15 +1,15 @@
-from bytestream import StringWithTotalLength, ByteStream, ZipWrapper
+from .bytestream import BytesWithTotalLength, ByteStream, ZipWrapper
 import unittest2
 import sys
 import tempfile
 import subprocess
 import requests
-import time
 from io import BytesIO
 from collections import namedtuple
 import os
 from uuid import uuid4
 import zipfile
+from .util import wait_for_http_server
 
 
 class BytestreamTests(unittest2.TestCase):
@@ -19,30 +19,29 @@ class BytestreamTests(unittest2.TestCase):
         self.port = '9876'
         path = os.path.dirname(__file__)
         server = os.path.join(path, 'dummyserver.py')
-        self.expected = ''.join(uuid4().hex for _ in xrange(100))
+        self.expected = b''.join(uuid4().hex.encode() for _ in range(100))
         devnull = open(os.devnull, 'w')
         self.process = subprocess.Popen(
-                [sys.executable, server, self.port, self.expected],
-                stdout=devnull,
-                stderr=devnull)
-        time.sleep(0.1)
+            [sys.executable, server, self.port, self.expected],
+            stdout=devnull,
+            stderr=devnull)
+        wait_for_http_server('localhost', '9876')
 
     def tearDown(self):
         self.process.kill()
 
     def results(self, inp):
-        return ''.join(self.bytestream._process(inp))
+        return b''.join(self.bytestream._process(inp))
 
     def local_url(self):
         return 'http://localhost:{port}'.format(**self.__dict__)
 
     def get_request(self):
         return requests.Request(
-                method='GET',
-                url=self.local_url())
+            method='GET',
+            url=self.local_url())
 
     def test_can_accept_chunksize_implementing_int(self):
-
         class SemanticChunksize(object):
             THING_SIZE_BYTES = 64
 
@@ -80,7 +79,7 @@ class BytestreamTests(unittest2.TestCase):
         self.assertEqual(self.expected, results)
 
     def test_can_use_local_file(self):
-        with tempfile.NamedTemporaryFile('w+') as tf:
+        with tempfile.NamedTemporaryFile('wb+') as tf:
             tf.write(self.expected)
             tf.seek(0)
             results = self.results(tf.name)
@@ -102,7 +101,7 @@ class BytestreamTests(unittest2.TestCase):
         self.assertEqual(self.expected, results)
 
     def test_supports_legacy_uri_interface_for_files(self):
-        with tempfile.NamedTemporaryFile('w+') as tf:
+        with tempfile.NamedTemporaryFile('wb+') as tf:
             tf.write(self.expected)
             tf.seek(0)
             results = self.results(self.HasUri(uri=tf.name))
@@ -119,21 +118,21 @@ class BytestreamTests(unittest2.TestCase):
         self.assertEqual(self.expected, results)
 
 
-class StringWithTotalLengthTests(unittest2.TestCase):
+class BytesWithTotalLengthTests(unittest2.TestCase):
     def test_left_add(self):
         self.assertEqual(
-                'fakeblah', StringWithTotalLength('fake', 100) + 'blah')
+            b'fakeblah', BytesWithTotalLength(b'fake', 100) + b'blah')
 
     def test_right_add(self):
         self.assertEqual(
-                'blahfake', 'blah' + StringWithTotalLength('fake', 100))
+            b'blahfake', b'blah' + BytesWithTotalLength(b'fake', 100))
 
     def test_left_increment(self):
-        x = StringWithTotalLength('fake', 100)
-        x += 'blah'
-        self.assertEqual('fakeblah', x)
+        x = BytesWithTotalLength(b'fake', 100)
+        x += b'blah'
+        self.assertEqual(b'fakeblah', x)
 
     def test_right_increment(self):
-        x = 'blah'
-        x += StringWithTotalLength('fake', 100)
-        self.assertEqual('blahfake', x)
+        x = b'blah'
+        x += BytesWithTotalLength(b'fake', 100)
+        self.assertEqual(b'blahfake', x)

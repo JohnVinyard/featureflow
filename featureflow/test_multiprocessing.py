@@ -1,10 +1,10 @@
 import unittest2
-from feature import Feature, JSONFeature
-from lmdbstore import LmdbDatabase
-from model import BaseModel
-from persistence import PersistenceSettings, UuidProvider, \
+from .feature import Feature, JSONFeature
+from .lmdbstore import LmdbDatabase
+from .model import BaseModel
+from .persistence import PersistenceSettings, UuidProvider, \
     StringDelimitedKeyBuilder
-from test_integration import TextStream, Tokenizer, WordCount
+from .test_integration import TextStream, Tokenizer, WordCount
 from tempfile import mkdtemp
 from multiprocessing import Pool
 
@@ -33,5 +33,5 @@ class MultiProcessTests(unittest2.TestCase):
         D.process(stream='Here is some text')
         D.process(stream='Here is some more')
         pool = Pool(4)
-        counts = pool.map(get_count, [_ for _ in xrange(10)])
+        counts = pool.map(get_count, [_ for _ in range(10)])
         self.assertSequenceEqual([2] * 10, counts)

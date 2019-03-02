@@ -1,4 +1,4 @@
-from data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
+from .data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
 
 
 class PersistenceSettings(object):

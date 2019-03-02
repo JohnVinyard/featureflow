@@ -38,5 +38,8 @@ setup(
     ],
     extras_require={
         'numpy': ['numpy==1.15.3']
-    }
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+    ],
 )

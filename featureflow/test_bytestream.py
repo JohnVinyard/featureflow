@@ -1,4 +1,4 @@
-from .bytestream import BytesWithTotalLength, ByteStream, ZipWrapper
+from .bytestream import BytesWithTotalLength, ByteStream, ZipWrapper, iter_zip
 import unittest2
 import sys
 import tempfile
@@ -136,3 +136,17 @@ class BytesWithTotalLengthTests(unittest2.TestCase):
         x = b'blah'
         x += BytesWithTotalLength(b'fake', 100)
         self.assertEqual(b'blahfake', x)
+
+
+class IterZipTests(unittest2.TestCase):
+    def test_iter_zip_yields_open_zip_files(self):
+        bio = BytesIO()
+        filename = 'test.dat'
+        with zipfile.ZipFile(bio, mode='w') as zf:
+            zf.writestr(filename, b'content')
+        bio.seek(0)
+
+        with list(iter_zip(bio))[0] as z:
+            self.assertFalse(
+                z.zipfile.closed, 'zipfile should be open, but was closed')
+            self.assertEqual(z.zipfile.read(), b'content')

@@ -79,14 +79,21 @@ def iter_zip(fn):
         for info in zf.filelist:
             if not info.file_size:
                 continue
-            with zf.open(info.filename) as f:
-                yield ZipWrapper(f, info)
+            f = zf.open(info.filename)
+            yield ZipWrapper(f, info)
 
 
 class ZipWrapper(object):
     def __init__(self, zipfile, zipinfo):
         self.zipinfo = zipinfo
         self.zipfile = zipfile
+
+    def __enter__(self):
+        self.zipfile.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.zipfile.__exit__(exc_type, exc_val, exc_tb)
 
     @property
     def file_size(self):

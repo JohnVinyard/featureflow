@@ -71,7 +71,7 @@ class Tokenizer(ff.Node):
         self._pattern = re.compile('(?P<word>[a-zA-Z]+)\W+')
 
     def _enqueue(self, data, pusher):
-        self._cache += data
+        self._cache += data.decode()
 
     def _dequeue(self):
         matches = list(self._pattern.finditer(self._cache))

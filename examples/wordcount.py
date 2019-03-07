@@ -17,7 +17,7 @@ class Tokenizer(ff.Node):
         self._pattern = re.compile('(?P<word>[a-zA-Z]+)\W+')
 
     def _enqueue(self, data, pusher):
-        self._cache += data
+        self._cache += data.decode()
 
     def _dequeue(self):
         matches = list(self._pattern.finditer(self._cache))
@@ -123,8 +123,16 @@ def summarize_corpus(corpus):
         n=corpus.total_counts.get("the", 0))
 
 
+example = '''example:
+
+python wordcount.py \\
+    --url http://textfiles.com/food/1st_aid.txt \\
+    --url http://textfiles.com/food/antibiot.txt \\
+'''
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+
+    parser = argparse.ArgumentParser(epilog=example, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         '--url',
         help='specify one or more urls of text files to ingest',

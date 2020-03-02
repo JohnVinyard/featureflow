@@ -22,7 +22,7 @@ class InMemoryChannel(object):
                     data = json.loads(d.get(block=not raise_when_empty))
                     yield data['_id'], data['message']
                 except Empty:
-                    raise StopIteration
+                    break
 
         return gen()
 
@@ -89,11 +89,13 @@ class EventLog(object):
     def unsubscribe(self):
         self.channel.unsubscribe()
 
-    def subscribe(self, last_id='', raise_when_empty=False):
+    def subscribe(self, last_id=b'', raise_when_empty=False):
         try:
             last_id = last_id.encode()
         except AttributeError:
             pass
+
+        print(last_id)
         subscription = self.channel.subscribe(raise_when_empty=raise_when_empty)
 
         with self.env.begin() as txn:
@@ -106,5 +108,6 @@ class EventLog(object):
 
         for _id, data in subscription:
             yield _id, data
+
 
 

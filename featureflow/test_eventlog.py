@@ -55,7 +55,7 @@ class EventLogTests(unittest2.TestCase):
     def test_only_returns_events_greater_than_last_id(self):
         self.Model.process(stream='Bah bah black sheep')
         events = list(self.Settings.event_log.subscribe(
-            last_id='', raise_when_empty=True))
+            last_id=b'', raise_when_empty=True))
         last_id, _ = events[-1]
         self.Model.process(stream='Humpty dumpty sat on a wall')
         next_events = list(self.Settings.event_log.subscribe(

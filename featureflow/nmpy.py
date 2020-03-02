@@ -98,7 +98,7 @@ class PackedNumpyEncoder(NumpyEncoder):
     def _prepare_data(self, data):
         try:
             return np.packbits(data.astype(np.uint8), axis=-1)
-        except ValueError:
+        except TypeError:
             return self._pack_recarray(data)
 
 

@@ -15,7 +15,7 @@ with open('featureflow/__init__.py', 'r') as fd:
         fd.read(),
         re.MULTILINE).group(1)
 
-download_url = 'https://github.com/jvinyard/featureflow/tarball/{version}' \
+download_url = 'https://github.com/JohnVinyard/featureflow/tarball/{version}' \
     .format(**locals())
 
 setup(

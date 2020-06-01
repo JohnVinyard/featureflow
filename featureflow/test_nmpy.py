@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 
 try:
     import numpy as np
@@ -94,13 +94,13 @@ class BaseNumpyTest(object):
             ('y', 'a32')])
 
 
-class GreedyNumpyTest(BaseNumpyTest, unittest2.TestCase):
+class GreedyNumpyTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         return settings_class.clone(
             database=InMemoryDatabase(key_builder=settings_class.key_builder))
 
 
-class GreedyNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
+class GreedyNumpyOnDiskTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         self._dir = mkdtemp()
         return settings_class.clone(database=FileSystemDatabase(
@@ -111,7 +111,7 @@ class GreedyNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
         rmtree(self._dir)
 
 
-class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
+class GreedyNumpyLmdbTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         self._dir = mkdtemp()
         return settings_class.clone(database=LmdbDatabase(
@@ -123,7 +123,7 @@ class GreedyNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
         rmtree(self._dir)
 
 
-class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
+class StreamingNumpyTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         return settings_class.clone(
             database=InMemoryDatabase(key_builder=settings_class.key_builder))
@@ -147,7 +147,7 @@ class StreamingNumpyTest(BaseNumpyTest, unittest2.TestCase):
         return np.concatenate(list(data))
 
 
-class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
+class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         self._dir = mkdtemp()
         return settings_class.clone(database=FileSystemDatabase(
@@ -176,7 +176,7 @@ class StreamingNumpyOnDiskTest(BaseNumpyTest, unittest2.TestCase):
         return np.concatenate(list(data))
 
 
-class StreamingNumpyLmdbTest(BaseNumpyTest, unittest2.TestCase):
+class StreamingNumpyLmdbTest(BaseNumpyTest, unittest.TestCase):
     def _register_database(self, settings_class):
         self._dir = mkdtemp()
         return settings_class.clone(database=LmdbDatabase(

@@ -1,9 +1,9 @@
-import unittest2
+import unittest
 from .datawriter import BytesIODataWriter
 from .encoder import IdentityEncoder
 
 
-class StringIODataWriterTests(unittest2.TestCase):
+class StringIODataWriterTests(unittest.TestCase):
     def test_overflow(self):
         buffer_size_limit = 128
         writer = BytesIODataWriter(

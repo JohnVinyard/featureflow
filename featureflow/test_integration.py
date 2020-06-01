@@ -1,7 +1,7 @@
 import requests
 import http.client
 from .util import wait_for_http_server
-import unittest2
+import unittest
 from collections import defaultdict
 import random
 from requests.exceptions import HTTPError
@@ -1761,7 +1761,7 @@ class BaseTest(object):
         self.assertEqual(data_source['lorem'].lower(), b''.join(doc.lowercase))
 
 
-class InMemoryTest(BaseTest, unittest2.TestCase):
+class InMemoryTest(BaseTest, unittest.TestCase):
     def setUp(self):
         class Settings(PersistenceSettings):
             id_provider = UuidProvider()
@@ -1771,7 +1771,7 @@ class InMemoryTest(BaseTest, unittest2.TestCase):
         self.Settings = Settings
 
 
-class FileSystemTest(BaseTest, unittest2.TestCase):
+class FileSystemTest(BaseTest, unittest.TestCase):
     def setUp(self):
         self._dir = mkdtemp()
 
@@ -1787,7 +1787,7 @@ class FileSystemTest(BaseTest, unittest2.TestCase):
         rmtree(self._dir)
 
 
-class LmdbTest(BaseTest, unittest2.TestCase):
+class LmdbTest(BaseTest, unittest.TestCase):
     def setUp(self):
         self._dir = mkdtemp()
 

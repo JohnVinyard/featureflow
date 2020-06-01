@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 from .eventlog import InMemoryChannel, EventLog
 from .model import BaseModel
 from .persistence import PersistenceSettings
@@ -10,7 +10,7 @@ from .data import UuidProvider, StringDelimitedKeyBuilder, InMemoryDatabase
 import json
 
 
-class EventLogTests(unittest2.TestCase):
+class EventLogTests(unittest.TestCase):
     def setUp(self):
         self._dir = tempfile.mkdtemp()
 

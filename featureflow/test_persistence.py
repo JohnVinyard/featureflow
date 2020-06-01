@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 from .persistence import simple_in_memory_settings
 from .bytestream import ByteStream, ByteStreamFeature
 from .feature import Feature, TextFeature
@@ -6,7 +6,7 @@ from .model import BaseModel
 from io import BytesIO
 
 
-class SimpleInMemorySettingsDecoratorTests(unittest2.TestCase):
+class SimpleInMemorySettingsDecoratorTests(unittest.TestCase):
     def test_can_process_document_using_decorated_class(self):
         @simple_in_memory_settings
         class Document(BaseModel):

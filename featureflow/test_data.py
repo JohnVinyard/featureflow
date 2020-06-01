@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 from uuid import uuid4
 from .data import \
     InMemoryDatabase, UserSpecifiedIdProvider, FileSystemDatabase, \
@@ -6,7 +6,7 @@ from .data import \
 import shutil
 
 
-class InMemoryDatabaseTest(unittest2.TestCase):
+class InMemoryDatabaseTest(unittest.TestCase):
     def setUp(self):
         self.db = InMemoryDatabase()
 
@@ -35,12 +35,12 @@ class InMemoryDatabaseTest(unittest2.TestCase):
         self.assertEqual(b'test data2', rs.read())
 
 
-class UserSpecifiedIdProviderTest(unittest2.TestCase):
+class UserSpecifiedIdProviderTest(unittest.TestCase):
     def test_raises_when_no_key_is_provided(self):
         self.assertRaises(ValueError, lambda: UserSpecifiedIdProvider())
 
 
-class FileSystemDatabaseTests(unittest2.TestCase):
+class FileSystemDatabaseTests(unittest.TestCase):
     def setUp(self):
         self._key_builder = StringDelimitedKeyBuilder()
         self._path = '/tmp/{path}'.format(path=uuid4().hex)

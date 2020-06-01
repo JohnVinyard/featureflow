@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 from .lmdbstore import LmdbDatabase
 from uuid import uuid4
 from .data import StringDelimitedKeyBuilder
@@ -45,7 +45,7 @@ def db_count(d):
     return len(list(EphemeralLmdb(dir=d).db.iter_ids()))
 
 
-class LmdbDatabaseTests(unittest2.TestCase):
+class LmdbDatabaseTests(unittest.TestCase):
     def setUp(self):
         self.value = os.urandom(1000)
         self.init_database()

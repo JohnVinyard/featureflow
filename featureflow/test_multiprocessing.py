@@ -1,4 +1,4 @@
-import unittest2
+import unittest
 from .feature import Feature, JSONFeature
 from .lmdbstore import LmdbDatabase
 from .model import BaseModel
@@ -28,7 +28,7 @@ def get_count(_):
     return len(list(D.database.iter_ids()))
 
 
-class MultiProcessTests(unittest2.TestCase):
+class MultiProcessTests(unittest.TestCase):
     def test_can_list_ids_from_multiple_processes(self):
         D.process(stream='Here is some text')
         D.process(stream='Here is some more')

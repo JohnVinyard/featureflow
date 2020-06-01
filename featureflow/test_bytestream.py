@@ -1,5 +1,5 @@
 from .bytestream import BytesWithTotalLength, ByteStream, ZipWrapper, iter_zip
-import unittest2
+import unittest
 import sys
 import tempfile
 import subprocess
@@ -12,7 +12,7 @@ import zipfile
 from .util import wait_for_http_server
 
 
-class BytestreamTests(unittest2.TestCase):
+class BytestreamTests(unittest.TestCase):
     def setUp(self):
         self.HasUri = namedtuple('HasUri', ['uri'])
         self.bytestream = ByteStream(chunksize=3)
@@ -118,7 +118,7 @@ class BytestreamTests(unittest2.TestCase):
         self.assertEqual(self.expected, results)
 
 
-class BytesWithTotalLengthTests(unittest2.TestCase):
+class BytesWithTotalLengthTests(unittest.TestCase):
     def test_left_add(self):
         self.assertEqual(
             b'fakeblah', BytesWithTotalLength(b'fake', 100) + b'blah')
@@ -138,7 +138,7 @@ class BytesWithTotalLengthTests(unittest2.TestCase):
         self.assertEqual(b'blahfake', x)
 
 
-class IterZipTests(unittest2.TestCase):
+class IterZipTests(unittest.TestCase):
     def test_iter_zip_yields_open_zip_files(self):
         bio = BytesIO()
         filename = 'test.dat'

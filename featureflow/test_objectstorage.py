@@ -1,10 +1,10 @@
-import unittest2
+import unittest
 from .objectstore import WriteStream
 import http.client
 from collections import namedtuple
 
 
-class WriteStreamTests(unittest2.TestCase):
+class WriteStreamTests(unittest.TestCase):
     def test_write_stream_does_not_put_zero_bytes(self):
         class TestWriteStream(WriteStream):
             def __init__(self):
